@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>熱源コネクター</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif; background: #fbfaf8; color: #2c2c2c; min-height: 100vh; line-height: 1.6; }
+  .container { max-width: 500px; margin: 0 auto; padding: 20px 16px 80px; }
+  header { margin-bottom: 24px; }
+  h1 { font-size: 22px; font-weight: 800; color: #1a1a1a; letter-spacing: -0.5px; }
+  .subtitle { font-size: 13px; color: #999; }
+  .back-btn { background: none; border: none; font-size: 14px; color: #888; cursor: pointer; padding: 8px 0; display: flex; align-items: center; gap: 4px; margin-bottom: 8px; }
+  .card { background: #fff; border: 1px solid #efedea; border-radius: 18px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); margin-bottom: 16px; }
+  .scene-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  .scene-btn { background: #fff; border: 1px solid #efedea; border-radius: 16px; padding: 16px; cursor: pointer; text-align: left; transition: all 0.2s; }
+  .scene-btn:hover { border-color: #ddd; transform: translateY(-2px); }
+  .scene-icon { font-size: 20px; margin-bottom: 8px; display: block; }
+  .scene-label { font-size: 14px; font-weight: 700; display: block; }
+  .scene-desc { font-size: 11px; color: #aaa; display: block; margin-top: 2px; }
+  .history-section h2 { font-size: 12px; color: #aaa; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+  .history-item { background: #fff; border: 1px solid #efedea; border-radius: 14px; padding: 14px; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: border-color .15s; }
+  .history-item:hover { border-color: #ddd; }
+  .history-info p { font-size: 14px; font-weight: 600; }
+  .history-info span { font-size: 11px; color: #aaa; }
+  .field-label { font-size: 12px; color: #888; display: block; margin-bottom: 6px; }
+  input[type=text], input[type=password] { width: 100%; padding: 12px 14px; border: 1px solid #eee; border-radius: 12px; font-size: 15px; font-family: inherit; background: #f9f9f9; outline: none; transition: border-color .15s; margin-bottom: 14px; }
+  input[type=text]:focus, input[type=password]:focus { border-color: #ccc; background: #fff; }
+  textarea { width: 100%; padding: 14px; border: 1px solid #eee; border-radius: 12px; font-size: 15px; font-family: inherit; background: #f9f9f9; outline: none; min-height: 140px; resize: vertical; transition: border-color .15s; line-height: 1.6; }
+  textarea:focus { border-color: #ccc; background: #fff; }
+  .btn-primary { width: 100%; padding: 16px; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; color: #fff; background: #1a1a1a; margin-top: 12px; }
+  .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; }
+  .btn-primary:hover:not(:disabled) { opacity: .88; }
+  .heat-source-card { border-radius: 18px; padding: 20px; margin-bottom: 20px; }
+  .heat-label { font-size: 11px; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+  .heat-val { font-size: 17px; font-weight: 700; line-height: 1.5; color: #fff; }
+  .topic-item { background: #fff; border: 1px solid #efedea; border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+  .topic-title { font-size: 15px; font-weight: 700; color: #1a1a1a; margin-bottom: 6px; }
+  .topic-why { font-size: 13px; color: #666; margin-bottom: 12px; line-height: 1.5; }
+  .msg-bubble { background: #f3f2ef; border-radius: 12px 12px 12px 3px; padding: 12px 14px; font-size: 14px; line-height: 1.7; margin-bottom: 8px; cursor: pointer; transition: background 0.15s; }
+  .msg-bubble:hover { background: #eae9e5; }
+  .msg-bubble.copied { background: #e8f5e9; }
+  .step { display: none; }
+  .step.active { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .status { font-size: 12px; color: #888; text-align: center; margin-top: 12px; min-height: 18px; }
+  .empty-history { font-size: 13px; color: #ccc; text-align: center; padding: 24px 0; }
+  .scene-badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div id="step-apikey" class="step">
+    <h1>熱源コネクター</h1>
+    <p class="subtitle">相手の関心の「その先」を透視する</p>
+    <div class="card" style="margin-top:40px;">
+      <p style="font-size:14px;font-weight:600;margin-bottom:4px;">OpenAI APIキー</p>
+      <p style="font-size:12px;color:#aaa;margin-bottom:12px;">platform.openai.com で取得できます。キーはこのブラウザにのみ保存されます。</p>
+      <input type="password" id="api-key-input" placeholder="sk-...">
+      <button class="btn-primary" onclick="saveApiKey()">はじめる</button>
+      <p class="status" id="key-status"></p>
+    </div>
+  </div>
+
+  <div id="step-dashboard" class="step active">
+    <header>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <h1>熱源コネクター</h1>
+          <p class="subtitle">誰の熱源を分析しますか？</p>
+        </div>
+        <button onclick="showStep('apikey')" style="background:none;border:none;font-size:11px;color:#ccc;cursor:pointer;">キーを変更</button>
+      </div>
+    </header>
+    <div class="scene-grid">
+      <div class="scene-btn" onclick="selectScene('matching')" style="border-bottom:4px solid #ff4b82;">
+        <span class="scene-icon">❤️</span>
+        <span class="scene-label">マッチング</span>
+        <span class="scene-desc">恋愛・パートナー</span>
+      </div>
+      <div class="scene-btn" onclick="selectScene('child')" style="border-bottom:4px solid #2ecc71;">
+        <span class="scene-icon">⭐</span>
+        <span class="scene-label">子育て</span>
+        <span class="scene-desc">子供との会話</span>
+      </div>
+      <div class="scene-btn" onclick="selectScene('friend')" style="border-bottom:4px solid #3b82f6;">
+        <span class="scene-icon">◎</span>
+        <span class="scene-label">友人・パートナー</span>
+        <span class="scene-desc">関係を深めたいとき</span>
+      </div>
+      <div class="scene-btn" onclick="selectScene('work')" style="border-bottom:4px solid #f59e0b;">
+        <span class="scene-icon">▲</span>
+        <span class="scene-label">職場</span>
+        <span class="scene-desc">上司・部下・同僚</span>
+      </div>
+    </div>
+    <div class="history-section">
+      <h2>最近の分析履歴</h2>
+      <div id="history-list"></div>
+    </div>
+  </div>
+
+  <div id="step-input" class="step">
+    <button class="back-btn" onclick="showStep('dashboard')">← 戻る</button>
+    <div id="scene-badge-wrap" style="margin-bottom:12px;"></div>
+    <h2 id="input-title" style="font-size:18px;font-weight:700;margin-bottom:4px;"></h2>
+    <p id="input-hint" style="font-size:13px;color:#aaa;margin-bottom:16px;"></p>
+    <div class="card">
+      <span class="field-label" id="name-label">名前・ニックネーム</span>
+      <input type="text" id="f-name" />
+      <span class="field-label" id="profile-label">プロフィール・最近の様子など</span>
+      <textarea id="f-smart-input"></textarea>
+      <button class="btn-primary" id="gen-btn" onclick="runAction()">熱源を分析する</button>
+      <p class="status" id="gen-status"></p>
+    </div>
+  </div>
+
+  <div id="step-result" class="step">
+    <button class="back-btn" onclick="showStep('dashboard')">← ダッシュボードへ</button>
+    <div id="result-content"></div>
+  </div>
+
+</div>
+<script>
+let currentScene = '';
+let historyData = JSON.parse(localStorage.getItem('aura_history') || '[]');
+
+const palette = {
+  matching: { accent: '#ff4b82', light: '#fff0f5' },
+  child:    { accent: '#2ecc71', light: '#e8f8f0' },
+  friend:   { accent: '#3b82f6', light: '#eff6ff' },
+  work:     { accent: '#f59e0b', light: '#fffbeb' }
+};
+
+const sceneConfig = {
+  matching: {
+    label: 'マッチングの相手',
+    hint: '相手の関心の奥にある「好きな理由」を引き出します',
+    icon: '❤️',
+    namePlaceholder: '例：さくらさん',
+    profilePlaceholder: '例：週末はカフェ巡りが好きで、最近は京都に行って神社を撮るのにはまっています。料理も好きで、エスニック料理をよく作ります。',
+    nameLabel: '相手の名前・ニックネーム',
+    profileLabel: 'プロフィール文・最近の会話・趣味など'
+  },
+  child: {
+    label: 'お子さん',
+    hint: '子供の夢中な世界に親が寄り添える声かけを提案します',
+    icon: '⭐',
+    namePlaceholder: '例：たろう、娘',
+    profilePlaceholder: '例：8歳・小2。最近マインクラフトにはまっている。虫も好きで図鑑をよく読む。少し人見知りだが、好きなことの話になると止まらない。',
+    nameLabel: 'お子さんの名前・呼び方',
+    profileLabel: '年齢・学年・夢中なこと・性格など'
+  },
+  friend: {
+    label: '友人・パートナー',
+    hint: '大切な人との会話をもっと深めるヒントを提案します',
+    icon: '◎',
+    namePlaceholder: '例：田中さん、彼女',
+    profilePlaceholder: '例：大学からの友人。最近転職して少し落ち着いた様子。登山と読書が好きで、先月は北アルプスに行っていた。',
+    nameLabel: '相手の名前・関係',
+    profileLabel: '趣味・最近の出来事・性格など'
+  },
+  work: {
+    label: '職場の方',
+    hint: '仕事以外の顔に触れる自然な雑談・1on1のきっかけを提案します',
+    icon: '▲',
+    namePlaceholder: '例：佐藤部長、新入りの鈴木さん',
+    profilePlaceholder: '例：直属の上司・50代。ゴルフと歴史が好きらしい。最近子供が独立して少し寂しそうにしていた。仕事は細かくて完璧主義。',
+    nameLabel: '名前・関係・役職',
+    profileLabel: '趣味・最近の様子・性格など'
+  }
+};
+
+const scenePrompts = {
+  matching: `マッチングアプリでの恋愛・パートナーシップのシーンです。相手が「自分のことをちゃんと見てくれている」と感じる、心に刺さる質問やメッセージ例を作ってください。表面的な趣味ではなく、なぜそれが好きなのかという価値観に触れるメッセージにしてください。`,
+  child:    `親子の会話のシーンです。「教える・正す」ではなく、子供が自然に話したくなる声かけを作ってください。子供の夢中な世界に親が本気で入ろうとする姿勢が伝わる言葉にしてください。`,
+  friend:   `友人・パートナーとの会話を深めるシーンです。久しぶりの会話や、もっと距離を縮めたいときに使える、相手の近況や関心事に自然に触れる問いかけを作ってください。`,
+  work:     `職場の人間関係を良くするシーンです。仕事の話だけでなく、相手の「人としての側面」に触れる自然な雑談・1on1のきっかけになる言葉を作ってください。`
+};
+
+function saveApiKey() {
+  const k = document.getElementById('api-key-input').value.trim();
+  if (!k.startsWith('sk-')) { document.getElementById('key-status').textContent = 'APIキーはsk-から始まります'; return; }
+  localStorage.setItem('oai_key', k);
+  renderHistory();
+  showStep('dashboard');
+}
+function getKey() { return localStorage.getItem('oai_key') || ''; }
+
+function showStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step-' + n).classList.add('active');
+  if (n === 'dashboard') renderHistory();
+  window.scrollTo(0, 0);
+}
+
+function selectScene(s) {
+  currentScene = s;
+  const cfg = sceneConfig[s];
+  const c = palette[s];
+  document.getElementById('scene-badge-wrap').innerHTML = `<span class="scene-badge" style="background:${c.light};color:${c.accent};">${cfg.icon} ${cfg.label}</span>`;
+  document.getElementById('input-title').textContent = cfg.label + 'の熱源分析';
+  document.getElementById('input-hint').textContent = cfg.hint;
+  document.getElementById('name-label').textContent = cfg.nameLabel;
+  document.getElementById('profile-label').textContent = cfg.profileLabel;
+  document.getElementById('f-name').placeholder = cfg.namePlaceholder;
+  document.getElementById('f-smart-input').placeholder = cfg.profilePlaceholder;
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-smart-input').value = '';
+  document.getElementById('gen-btn').style.background = c.accent;
+  document.getElementById('gen-status').textContent = '';
+  showStep('input');
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (historyData.length === 0) {
+    list.innerHTML = '<p class="empty-history">まだ分析履歴がありません</p>';
+    return;
+  }
+  list.innerHTML = historyData.slice(0, 5).map((item, idx) => {
+    const cfg = sceneConfig[item.scene] || sceneConfig.matching;
+    const c = palette[item.scene] || palette.matching;
+    return `<div class="history-item" onclick="viewHistory(${idx})">
+      <div class="history-info">
+        <p>${cfg.icon} ${item.name || '不明な相手'}</p>
+        <span style="color:${c.accent};">${cfg.label}</span>　<span>${item.date}</span>
+      </div>
+      <span style="color:#ccc;font-size:18px;">›</span>
+    </div>`;
+  }).join('');
+}
+
+function buildPrompt(name, input) {
+  return `あなたはコミュニケーションOS「熱源コネクター」です。
+シーン: ${scenePrompts[currentScene]}
+
+相手の名前: ${name || '不明'}
+入力内容: ${input}
+
+【ミッション】
+入力内容から、相手が心の底で大切にしている価値観（熱源）を特定してください。
+表面的な趣味や情報だけでなく、「なぜそれが好きなのか」という奥にある欲求・感情を推測してください。
+
+以下のJSON形式のみで回答（マークダウン・説明文は不要）:
+{
+  "name": "${name || '相手'}",
+  "heat_source": "熱源の分析（35文字以内）",
+  "topics": [
+    {
+      "title": "話題のタイトル（10文字以内）",
+      "why": "なぜこの話題が熱源に響くか（35文字以内）",
+      "messages": ["メッセージ例1", "メッセージ例2", "メッセージ例3"]
+    }
+  ]
+}
+topicsは4つ生成してください。`;
+}
+
+async function runAction() {
+  const name = document.getElementById('f-name').value.trim();
+  const input = document.getElementById('f-smart-input').value.trim();
+  if (!input) { document.getElementById('gen-status').textContent = 'プロフィールを入力してください'; return; }
+  const btn = document.getElementById('gen-btn');
+  const status = document.getElementById('gen-status');
+  btn.disabled = true;
+  status.textContent = '熱源を透視しています...';
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getKey()}` },
+      body: JSON.stringify({ model: 'gpt-4o-mini', max_tokens: 1400, messages: [{ role: 'user', content: buildPrompt(name, input) }] })
+    });
+    const data = await res.json();
+    const result = JSON.parse(data.choices[0].message.content.replace(/```json|```/g, '').trim());
+    const item = { ...result, name: name || result.name, scene: currentScene, date: new Date().toLocaleDateString('ja-JP') };
+    historyData.unshift(item);
+    localStorage.setItem('aura_history', JSON.stringify(historyData.slice(0, 20)));
+    renderResult(item);
+    showStep('result');
+  } catch (e) {
+    status.textContent = '分析に失敗しました。APIキーを確認してください。';
+  } finally {
+    btn.disabled = false;
+    status.textContent = '';
+  }
+}
+
+function renderResult(data) {
+  const c = palette[data.scene] || palette.matching;
+  const cfg = sceneConfig[data.scene] || sceneConfig.matching;
+  document.getElementById('result-content').innerHTML = `
+    <div class="heat-source-card" style="background:${c.accent};">
+      <p class="heat-label">${data.name}さんの熱源</p>
+      <p class="heat-val">${data.heat_source}</p>
+    </div>
+    ${data.topics.map(t => `
+      <div class="topic-item">
+        <p class="topic-title">${t.title}</p>
+        <p class="topic-why">${t.why}</p>
+        ${t.messages.map(m => `<div class="msg-bubble" onclick="copyBubble('${m.replace(/'/g,"\\'")}',this)">${m}</div>`).join('')}
+      </div>`).join('')}
+    <button class="btn-primary" onclick="selectScene('${data.scene}')" style="background:${c.accent};margin-top:8px;">もう一度分析する</button>`;
+}
+
+function viewHistory(idx) {
+  currentScene = historyData[idx].scene;
+  renderResult(historyData[idx]);
+  showStep('result');
+}
+
+function copyBubble(text, el) {
+  navigator.clipboard.writeText(text).catch(() => {});
+  el.classList.add('copied');
+  setTimeout(() => el.classList.remove('copied'), 800);
+}
+
+window.onload = () => {
+  if (!getKey()) showStep('apikey');
+  else renderHistory();
+};
+</script>
+</body>
+</html>
