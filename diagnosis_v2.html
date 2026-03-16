@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>熱源タイプ診断</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif; background: #fbfaf8; color: #2c2c2c; min-height: 100vh; line-height: 1.6; }
+  .container { max-width: 500px; margin: 0 auto; padding: 20px 16px 80px; }
+  h1 { font-size: 22px; font-weight: 800; color: #1a1a1a; letter-spacing: -0.5px; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #999; margin-bottom: 28px; }
+  .card { background: #fff; border: 1px solid #efedea; border-radius: 18px; padding: 24px 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); margin-bottom: 16px; }
+  .progress-wrap { margin-bottom: 24px; }
+  .progress-bar-bg { background: #efedea; border-radius: 4px; height: 4px; margin-bottom: 8px; }
+  .progress-bar-fill { height: 4px; border-radius: 4px; background: #1a1a1a; transition: width 0.4s ease; }
+  .q-count { font-size: 12px; color: #aaa; }
+  .question { font-size: 17px; font-weight: 700; color: #1a1a1a; margin-bottom: 20px; line-height: 1.5; }
+  .choices { display: flex; flex-direction: column; gap: 10px; }
+  .choice-btn { background: #faf9f7; border: 1.5px solid #efedea; border-radius: 14px; padding: 14px 16px; font-size: 15px; cursor: pointer; text-align: left; transition: all 0.18s; color: #2c2c2c; font-family: inherit; }
+  .choice-btn:hover { border-color: #ccc; background: #fff; transform: translateY(-1px); }
+  .result-card { border-radius: 22px; padding: 28px 24px; margin-bottom: 20px; text-align: center; }
+  .result-icon { font-size: 56px; margin-bottom: 12px; display: block; }
+  .result-type { font-size: 13px; font-weight: 700; letter-spacing: .1em; margin-bottom: 6px; opacity: .75; color: #fff; }
+  .result-name { font-size: 26px; font-weight: 800; color: #fff; margin-bottom: 10px; line-height: 1.3; }
+  .result-desc { font-size: 14px; color: rgba(255,255,255,0.85); line-height: 1.7; }
+  .trait-wrap { margin-bottom: 4px; }
+  .trait-item { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .trait-bar-bg { flex: 1; background: #efedea; border-radius: 4px; height: 6px; overflow: hidden; }
+  .trait-bar-fill { height: 6px; border-radius: 4px; transition: width 0.6s ease; }
+  .trait-label { font-size: 13px; color: #666; min-width: 80px; }
+  .trait-val { font-size: 12px; color: #aaa; min-width: 32px; text-align: right; }
+  .btn-primary { width: 100%; padding: 16px; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; color: #fff; background: #1a1a1a; margin-top: 8px; }
+  .btn-primary:hover { opacity: .88; }
+  .btn-secondary { width: 100%; padding: 14px; border: 1.5px solid #efedea; border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #666; background: #fff; margin-top: 10px; }
+  .btn-secondary:hover { border-color: #ddd; }
+  .btn-x { width: 100%; padding: 14px; border: none; border-radius: 14px; font-size: 15px; font-weight: 700; cursor: pointer; background: #000; color: #fff; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+  /* 誘導カード */
+  .cta-card { border-radius: 20px; padding: 24px 20px; margin-bottom: 16px; position: relative; overflow: hidden; }
+  .cta-card::before { content: ''; position: absolute; top: -30px; right: -30px; width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,0.1); }
+  .cta-card::after { content: ''; position: absolute; bottom: -20px; left: -20px; width: 80px; height: 80px; border-radius: 50%; background: rgba(255,255,255,0.07); }
+  .cta-tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; background: rgba(255,255,255,0.2); color: #fff; margin-bottom: 10px; letter-spacing: .05em; }
+  .cta-title { font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 8px; line-height: 1.4; }
+  .cta-desc { font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.7; margin-bottom: 16px; }
+  .cta-btn { display: block; background: #fff; border: none; border-radius: 12px; padding: 13px 20px; font-size: 15px; font-weight: 700; cursor: pointer; text-decoration: none; text-align: center; transition: all 0.18s; width: 100%; }
+  .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
+
+  .step { display: none; }
+  .step.active { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div id="step-intro" class="step active">
+    <h1>熱源タイプ診断</h1>
+    <p class="subtitle">あなたが人に関心を持つとき、どんな「熱源」が動いていますか？</p>
+    <div class="card">
+      <p style="font-size:15px;line-height:1.8;margin-bottom:20px;">10問の質問に答えるだけで、あなたの「熱源タイプ」がわかります。<br><br>熱源とは、人が何かに夢中になるときの根っこにある価値観・欲求のことです。自分の熱源を知ると、相手の熱源にも気づきやすくなります。</p>
+      <button class="btn-primary" onclick="startQuiz()">診断スタート</button>
+    </div>
+  </div>
+
+  <div id="step-quiz" class="step">
+    <div class="progress-wrap">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span class="q-count" id="q-count">1 / 10</span>
+      </div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-fill" style="width:10%;"></div></div>
+    </div>
+    <div class="card">
+      <p class="question" id="q-text"></p>
+      <div class="choices" id="q-choices"></div>
+    </div>
+  </div>
+
+  <div id="step-result" class="step">
+    <div id="result-main"></div>
+
+    <div class="card">
+      <p style="font-size:13px;font-weight:700;color:#888;margin-bottom:12px;">あなたの熱源バランス</p>
+      <div class="trait-wrap" id="trait-bars"></div>
+    </div>
+
+    <!-- シェア -->
+    <div class="card">
+      <p style="font-size:13px;font-weight:700;color:#888;margin-bottom:12px;">シェア画像</p>
+      <canvas id="share-canvas" width="600" height="600" style="width:100%;border-radius:12px;display:block;"></canvas>
+      <button class="btn-x" onclick="shareToX()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        Xでシェアする
+      </button>
+      <button class="btn-secondary" onclick="downloadImage()">画像を保存する</button>
+    </div>
+
+    <!-- 誘導カード -->
+    <div class="cta-card" id="cta-card">
+      <span class="cta-tag">NEXT STEP</span>
+      <p class="cta-title" id="cta-title"></p>
+      <p class="cta-desc" id="cta-desc"></p>
+      <a href="index.html" class="cta-btn" id="cta-btn"></a>
+    </div>
+
+    <button class="btn-secondary" onclick="startQuiz()">もう一度診断する</button>
+  </div>
+
+</div>
+<script>
+const questions = [
+  { text: "週末に一人の時間ができたら、まず何をしたいですか？", choices: [{ text: "知らない場所に行ってみる", types: { freedom: 2, adventure: 2 } }, { text: "気になっていた本や動画を堪能する", types: { explore: 3 } }, { text: "誰かに連絡して会う約束をする", types: { connect: 3 } }, { text: "何かを作ったり表現したりする", types: { create: 3 } }] },
+  { text: "会話が一番弾むのはどんなとき？", choices: [{ text: "お互いの夢や将来の話をするとき", types: { grow: 2, freedom: 1 } }, { text: "深い話や哲学的な話をするとき", types: { explore: 3 } }, { text: "笑いが止まらないくらい盛り上がるとき", types: { connect: 2, harmony: 1 } }, { text: "相手のことを初めて知れたとき", types: { connect: 2, explore: 1 } }] },
+  { text: "何かに挑戦するとき、一番の原動力は？", choices: [{ text: "誰も行ったことのない場所に行く感覚", types: { adventure: 3, freedom: 1 } }, { text: "自分がどこまでできるか試したい", types: { grow: 3 } }, { text: "誰かのためになりたい", types: { connect: 2, harmony: 1 } }, { text: "面白そうだから、それだけ", types: { explore: 2, create: 1 } }] },
+  { text: "映画や本で一番心に残るのはどんな作品？", choices: [{ text: "旅や冒険を描いたもの", types: { adventure: 2, freedom: 1 } }, { text: "人間の深層や謎を描いたもの", types: { explore: 3 } }, { text: "人と人のつながりや愛を描いたもの", types: { connect: 3 } }, { text: "才能や創造の物語", types: { create: 3 } }] },
+  { text: "あなたが一番「生きている」と感じる瞬間は？", choices: [{ text: "初めての場所に立ったとき", types: { adventure: 3, freedom: 1 } }, { text: "何かが「わかった！」と腑に落ちたとき", types: { explore: 3 } }, { text: "誰かと深くつながれたと感じたとき", types: { connect: 3 } }, { text: "作ったものが完成したとき", types: { create: 3 } }] },
+  { text: "友人に「あなたってどんな人？」と聞かれたら、一番近いのは？", choices: [{ text: "自由人、型にはまらない", types: { freedom: 3 } }, { text: "何でも知りたがり、好奇心旺盛", types: { explore: 3 } }, { text: "人の気持ちに敏感、共感力が高い", types: { connect: 2, harmony: 1 } }, { text: "穏やかで、場の空気を大切にする", types: { harmony: 3 } }] },
+  { text: "一番疲れを感じるのはどんなとき？", choices: [{ text: "同じルーティンが続くとき", types: { freedom: 2, adventure: 1 } }, { text: "浅い会話しかできないとき", types: { explore: 2, connect: 1 } }, { text: "人間関係にギクシャクがあるとき", types: { harmony: 3 } }, { text: "自分の時間が持てないとき", types: { freedom: 2, harmony: 1 } }] },
+  { text: "相手のどんなところに一番惹かれますか？", choices: [{ text: "情熱を持って何かに取り組んでいるところ", types: { grow: 2, create: 1 } }, { text: "博識で話が面白いところ", types: { explore: 3 } }, { text: "人に対して温かく、誠実なところ", types: { connect: 2, harmony: 1 } }, { text: "自分のスタイルを持っているところ", types: { freedom: 2, create: 1 } }] },
+  { text: "理想の休日の過ごし方に近いのは？", choices: [{ text: "計画なしの一人旅や散策", types: { freedom: 2, adventure: 2 } }, { text: "気になることを深掘りして一日過ごす", types: { explore: 3 } }, { text: "大切な人とゆっくり過ごす", types: { connect: 2, harmony: 1 } }, { text: "何か作ったり、表現したりする", types: { create: 3 } }] },
+  { text: "あなたが人に一番伝えたいことは？", choices: [{ text: "もっと自由に、もっと広い世界がある", types: { freedom: 2, adventure: 1 } }, { text: "知ることは、生きることと同じくらい大切", types: { explore: 3 } }, { text: "人とのつながりが、人生を豊かにする", types: { connect: 3 } }, { text: "自分らしく表現することを恐れないで", types: { create: 2, freedom: 1 } }] }
+];
+
+const heatTypes = {
+  freedom:   { name: '自由探索型',     icon: '🌍', color: '#3b82f6', desc: '枠にとらわれず、自分のペースで世界を広げることに喜びを感じます。相手に対しても「もっと自由に生きていいんだよ」というメッセージを自然に発信しています。',
+    ctaTitle: 'あなたが感じた「自由」を、相手の中にも見つけてみませんか？', ctaDesc: '熱源コネクターは、相手のプロフィールを入力するだけで、その人が大切にしている価値観に寄り添う話題とメッセージを提案します。', ctaBtn: '相手の熱源を分析してみる', ctaBtnColor: '#3b82f6' },
+  adventure: { name: '冒険開拓型',     icon: '🚀', color: '#f59e0b', desc: '未知の体験や挑戦の中にこそ本当の自分がいると感じます。相手の「まだ見ぬ一面」を引き出すことが得意です。',
+    ctaTitle: '相手の「まだ見ぬ一面」を引き出す会話、してみませんか？', ctaDesc: '熱源コネクターなら、相手のプロフィールから「その人だけの熱源」を分析して、会話のきっかけを提案します。', ctaBtn: '相手の熱源を分析してみる', ctaBtnColor: '#f59e0b' },
+  explore:   { name: '深掘り探求型',   icon: '🔍', color: '#8b5cf6', desc: '物事の本質や「なぜ？」を追いかけることに喜びを感じます。相手の言葉の奥にある意味を感じ取る力があります。',
+    ctaTitle: '相手の言葉の「奥」にある熱源を、AIと一緒に読み解いてみませんか？', ctaDesc: '熱源コネクターは、相手のプロフィールや会話から「なぜそれが好きなのか」という深層を分析します。あなたの探求心がきっと共鳴するはずです。', ctaBtn: '相手の熱源を深掘りしてみる', ctaBtnColor: '#8b5cf6' },
+  connect:   { name: 'つながり共鳴型', icon: '🤝', color: '#ff4b82', desc: '人と深くつながることに最大の喜びを感じます。相手の感情に寄り添い、相手が「わかってもらえた」と感じる会話ができます。',
+    ctaTitle: '「わかってもらえた」と相手が感じる会話を、もっと増やしませんか？', ctaDesc: '熱源コネクターは、相手の関心の奥にある価値観に寄り添うメッセージを提案します。あなたのつながり力が、もっと輝くはずです。', ctaBtn: '相手の熱源に寄り添ってみる', ctaBtnColor: '#ff4b82' },
+  create:    { name: '創造表現型',     icon: '🎨', color: '#ef4444', desc: '何かを生み出したり、自分を表現したりすることに情熱を感じます。会話の中でも独自の視点や言葉で相手を驚かせます。',
+    ctaTitle: '相手に刺さる「あなただけの言葉」を一緒に作りませんか？', ctaDesc: '熱源コネクターは、相手の熱源を分析して会話のヒントを提案します。あなたの表現力で、メッセージをもっと自分らしくアレンジしてみてください。', ctaBtn: '相手の熱源を分析してみる', ctaBtnColor: '#ef4444' },
+  grow:      { name: '成長挑戦型',     icon: '📈', color: '#2ecc71', desc: '常に成長し、昨日の自分を超えることを求めています。相手の可能性を信じ、背中を押す言葉をかけることが得意です。',
+    ctaTitle: '相手の「可能性の熱源」を見つける会話、してみませんか？', ctaDesc: '熱源コネクターは、相手のプロフィールから成長への意欲や情熱を読み解き、その人の背中を押すような話題を提案します。', ctaBtn: '相手の熱源を分析してみる', ctaBtnColor: '#2ecc71' },
+  harmony:   { name: '調和共存型',     icon: '🌙', color: '#6366f1', desc: '穏やかで心地よい関係を大切にします。場の空気を読み、相手が安心して話せる雰囲気を自然に作り出します。',
+    ctaTitle: '相手が「安心して話せる」会話の入口を、一緒に探しませんか？', ctaDesc: '熱源コネクターは、相手の関心事に自然に寄り添う話題とメッセージを提案します。あなたの調和力がさらに活きる会話ができるはずです。', ctaBtn: '相手の熱源に寄り添ってみる', ctaBtnColor: '#6366f1' }
+};
+
+const typeLabels = { freedom: '自由', adventure: '冒険', explore: '探求', connect: 'つながり', create: '創造', grow: '成長', harmony: '調和' };
+
+let currentQ = 0;
+let scores = {};
+let resultType = null;
+
+function startQuiz() {
+  currentQ = 0;
+  scores = { freedom: 0, adventure: 0, explore: 0, connect: 0, create: 0, grow: 0, harmony: 0 };
+  showStep('quiz');
+  renderQuestion();
+}
+
+function showStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step-' + n).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function renderQuestion() {
+  const q = questions[currentQ];
+  document.getElementById('q-count').textContent = `${currentQ + 1} / ${questions.length}`;
+  document.getElementById('progress-fill').style.width = `${((currentQ + 1) / questions.length) * 100}%`;
+  document.getElementById('q-text').textContent = q.text;
+  document.getElementById('q-choices').innerHTML = q.choices.map((c, i) =>
+    `<button class="choice-btn" onclick="selectChoice(${i})">${c.text}</button>`).join('');
+}
+
+function selectChoice(idx) {
+  const choice = questions[currentQ].choices[idx];
+  Object.entries(choice.types).forEach(([type, val]) => { scores[type] = (scores[type] || 0) + val; });
+  const btns = document.querySelectorAll('.choice-btn');
+  btns.forEach(b => b.disabled = true);
+  btns[idx].style.background = '#1a1a1a';
+  btns[idx].style.color = '#fff';
+  btns[idx].style.borderColor = '#1a1a1a';
+  setTimeout(() => { currentQ++; if (currentQ >= questions.length) showResult(); else renderQuestion(); }, 300);
+}
+
+function showResult() {
+  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+  const topType = sorted[0][0];
+  resultType = heatTypes[topType];
+  const total = Object.values(scores).reduce((a, b) => a + b, 0) || 1;
+
+  document.getElementById('result-main').innerHTML = `
+    <div class="result-card" style="background:${resultType.color};">
+      <span class="result-icon">${resultType.icon}</span>
+      <p class="result-type">あなたの熱源タイプ</p>
+      <p class="result-name">${resultType.name}</p>
+      <p class="result-desc">${resultType.desc}</p>
+    </div>`;
+
+  document.getElementById('trait-bars').innerHTML = sorted.map(([type, val]) => `
+    <div class="trait-item">
+      <span class="trait-label">${typeLabels[type]}</span>
+      <div class="trait-bar-bg"><div class="trait-bar-fill" style="width:${Math.round(val/total*100)}%;background:${heatTypes[type].color};"></div></div>
+      <span class="trait-val">${Math.round(val/total*100)}%</span>
+    </div>`).join('');
+
+  // 誘導カード（タイプ別にカスタマイズ）
+  const cta = document.getElementById('cta-card');
+  cta.style.background = resultType.ctaBtnColor;
+  document.getElementById('cta-title').textContent = resultType.ctaTitle;
+  document.getElementById('cta-desc').textContent = resultType.ctaDesc;
+  const btn = document.getElementById('cta-btn');
+  btn.textContent = resultType.ctaBtn + ' →';
+  btn.style.color = resultType.ctaBtnColor;
+
+  drawShareCard();
+  showStep('result');
+}
+
+function drawShareCard() {
+  const canvas = document.getElementById('share-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = 600, H = 600;
+  canvas.width = W; canvas.height = H;
+  ctx.fillStyle = resultType.color;
+  ctx.fillRect(0, 0, W, H);
+  ctx.beginPath(); ctx.arc(W - 80, 80, 160, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(80, H - 80, 120, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fill();
+  ctx.font = '96px serif'; ctx.textAlign = 'center';
+  ctx.fillText(resultType.icon, W / 2, 190);
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.font = '600 18px -apple-system, sans-serif';
+  ctx.fillText('私の熱源タイプ', W / 2, 248);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 44px -apple-system, sans-serif';
+  ctx.fillText(resultType.name, W / 2, 316);
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.font = '18px -apple-system, sans-serif';
+  const words = resultType.desc;
+  const maxWidth = 460;
+  let line = '', y = 376;
+  for (let i = 0; i < words.length; i++) {
+    const test = line + words[i];
+    if (ctx.measureText(test).width > maxWidth && line !== '') { ctx.fillText(line, W / 2, y); line = words[i]; y += 28; }
+    else { line = test; }
+  }
+  ctx.fillText(line, W / 2, y);
+  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.font = '15px -apple-system, sans-serif';
+  ctx.fillText('熱源コネクター', W / 2, H - 40);
+}
+
+function shareToX() {
+  const text = `私の熱源タイプは「${resultType.name}」でした ${resultType.icon}\n\n${resultType.desc.slice(0, 55)}…\n\n#熱源タイプ診断 #熱源コネクター`;
+  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+}
+
+function downloadImage() {
+  const a = document.createElement('a');
+  a.download = `熱源タイプ_${resultType.name}.png`;
+  a.href = document.getElementById('share-canvas').toDataURL('image/png');
+  a.click();
+}
+</script>
+</body>
+</html>
