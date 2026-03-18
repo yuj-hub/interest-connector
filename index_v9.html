@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>熱源コネクター</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif; background: #fbfaf8; color: #2c2c2c; min-height: 100vh; line-height: 1.6; }
+  .container { max-width: 500px; margin: 0 auto; padding: 20px 16px 80px; }
+  header { margin-bottom: 24px; }
+  h1 { font-size: 22px; font-weight: 800; color: #1a1a1a; letter-spacing: -0.5px; }
+  .subtitle { font-size: 13px; color: #999; }
+  .back-btn { background: none; border: none; font-size: 14px; color: #888; cursor: pointer; padding: 8px 0; display: flex; align-items: center; gap: 4px; margin-bottom: 8px; }
+  .card { background: #fff; border: 1px solid #efedea; border-radius: 18px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); margin-bottom: 16px; }
+  .scene-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  .scene-btn { background: #fff; border: 1px solid #efedea; border-radius: 16px; padding: 16px; cursor: pointer; text-align: left; transition: all 0.2s; }
+  .scene-btn:hover { border-color: #ddd; transform: translateY(-2px); }
+  .scene-icon { font-size: 20px; margin-bottom: 8px; display: block; }
+  .scene-label { font-size: 14px; font-weight: 700; display: block; }
+  .scene-desc { font-size: 11px; color: #aaa; display: block; margin-top: 2px; }
+  .tone-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tone-btn { flex: 1; padding: 10px 4px; border: 1.5px solid #efedea; border-radius: 12px; background: #faf9f7; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.18s; color: #aaa; text-align: center; }
+  .tone-btn.active { color: #fff; border-color: transparent; }
+  .tone-btn .tone-icon { display: block; font-size: 18px; margin-bottom: 2px; }
+  .collection-section { margin-bottom: 24px; }
+  .collection-section h2 { font-size: 12px; color: #aaa; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+  .collection-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .collection-badge { display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; transition: transform 0.15s; }
+  .collection-badge:hover { transform: scale(1.05); }
+  .history-section h2 { font-size: 12px; color: #aaa; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+  .history-item { background: #fff; border: 1px solid #efedea; border-radius: 14px; padding: 14px; margin-bottom: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: border-color .15s; }
+  .history-item:hover { border-color: #ddd; }
+  .history-info p { font-size: 14px; font-weight: 600; }
+  .history-info span { font-size: 11px; color: #aaa; }
+  .field-label { font-size: 12px; color: #888; display: block; margin-bottom: 6px; }
+  input[type=text], input[type=password] { width: 100%; padding: 12px 14px; border: 1px solid #eee; border-radius: 12px; font-size: 15px; font-family: inherit; background: #f9f9f9; outline: none; transition: border-color .15s; margin-bottom: 14px; }
+  input[type=text]:focus, input[type=password]:focus { border-color: #ccc; background: #fff; }
+  textarea { width: 100%; padding: 14px; border: 1px solid #eee; border-radius: 12px; font-size: 15px; font-family: inherit; background: #f9f9f9; outline: none; resize: vertical; transition: border-color .15s; line-height: 1.6; }
+  textarea:focus { border-color: #ccc; background: #fff; }
+  .btn-primary { width: 100%; padding: 16px; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; color: #fff; background: #1a1a1a; margin-top: 12px; }
+  .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; }
+  .btn-primary:hover:not(:disabled) { opacity: .88; }
+  .btn-secondary { width: 100%; padding: 13px; border: 1.5px solid #efedea; border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #666; background: #fff; margin-top: 10px; }
+  .btn-secondary:hover { border-color: #ddd; }
+  .heat-source-card { border-radius: 18px; padding: 20px; margin-bottom: 16px; }
+  .heat-label { font-size: 11px; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+  .heat-val { font-size: 17px; font-weight: 700; line-height: 1.5; color: #fff; }
+  .heat-type { display: inline-block; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px; margin-top: 10px; background: rgba(255,255,255,0.25); color: #fff; }
+
+  /* 深掘り3層カード */
+  .layers-card { background: #fff; border: 1px solid #efedea; border-radius: 16px; padding: 16px 18px; margin-bottom: 16px; }
+  .layer-row { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+  .layer-row:last-child { margin-bottom: 0; }
+  .layer-num { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+  .layer-content p { font-size: 12px; font-weight: 700; margin-bottom: 2px; }
+  .layer-content span { font-size: 14px; color: #444; line-height: 1.5; }
+  .layer-arrow { text-align: center; font-size: 16px; color: #ddd; margin: -6px 0; padding-left: 12px; }
+
+  .topic-item { background: #fff; border: 1px solid #efedea; border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+  .topic-title { font-size: 15px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; }
+  .topic-why { font-size: 13px; color: #666; margin-bottom: 4px; line-height: 1.5; }
+  .topic-intent { font-size: 12px; color: #aaa; margin-bottom: 12px; font-style: italic; }
+  .msg-bubble { background: #f3f2ef; border-radius: 12px 12px 12px 3px; padding: 12px 14px; font-size: 14px; line-height: 1.7; margin-bottom: 8px; cursor: pointer; transition: background 0.15s; }
+  .msg-bubble:hover { background: #eae9e5; }
+  .msg-bubble.copied { background: #e8f5e9; }
+  .thread-wrap { margin-bottom: 20px; }
+  .thread-msg { display: flex; gap: 8px; margin-bottom: 10px; align-items: flex-start; }
+  .thread-msg.me { flex-direction: row-reverse; }
+  .thread-bubble { max-width: 80%; padding: 10px 14px; border-radius: 18px; font-size: 14px; line-height: 1.6; }
+  .thread-msg.me .thread-bubble { background: #1a1a1a; color: #fff; border-radius: 18px 18px 4px 18px; }
+  .thread-msg.them .thread-bubble { background: #f0f0f0; color: #2c2c2c; border-radius: 18px 18px 18px 4px; }
+  .thread-avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; margin-top: 2px; }
+  .add-reply-area { background: #f9f9f7; border: 1.5px dashed #e0deda; border-radius: 14px; padding: 14px; margin-top: 4px; }
+  .step { display: none; }
+  .step.active { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .status { font-size: 12px; color: #888; text-align: center; margin-top: 12px; min-height: 18px; }
+  .empty-history { font-size: 13px; color: #ccc; text-align: center; padding: 24px 0; }
+  .scene-badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; margin-bottom: 12px; }
+  .tone-hint { font-size: 12px; color: #aaa; text-align: center; margin-bottom: 8px; }
+  .divider { border: none; border-top: 1px solid #efedea; margin: 20px 0; }
+  .section-label { font-size: 12px; color: #aaa; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+  .pw-note { font-size: 12px; color: #bbb; margin-top: 10px; text-align: center; line-height: 1.6; }
+  .pw-note a { color: #aaa; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div id="step-password" class="step active">
+    <h1>熱源コネクター</h1>
+    <p class="subtitle">相手の関心の「その先」を透視する</p>
+    <div class="card" style="margin-top:40px;">
+      <p style="font-size:14px;font-weight:600;margin-bottom:4px;">今月のパスワードを入力</p>
+      <p style="font-size:12px;color:#aaa;margin-bottom:16px;">noteメンバーシップの今月の投稿からパスワードをご確認ください。</p>
+      <input type="password" id="pw-input" placeholder="今月のパスワード" />
+      <button class="btn-primary" onclick="savePassword()">入る</button>
+      <p class="status" id="pw-status"></p>
+      <p class="pw-note">まだメンバーでない方は<br><a href="https://note.com/yowa_ai" target="_blank">こちらからメンバーシップに参加</a>できます</p>
+    </div>
+  </div>
+
+  <div id="step-dashboard" class="step">
+    <header>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div><h1>熱源コネクター</h1><p class="subtitle">誰の熱源を分析しますか？</p></div>
+        <button onclick="showStep('password')" style="background:none;border:none;font-size:11px;color:#ccc;cursor:pointer;">パスワード変更</button>
+      </div>
+    </header>
+    <div class="scene-grid">
+      <div class="scene-btn" onclick="selectScene('matching')" style="border-bottom:4px solid #ff4b82;"><span class="scene-icon">❤️</span><span class="scene-label">マッチング</span><span class="scene-desc">恋愛・パートナー</span></div>
+      <div class="scene-btn" onclick="selectScene('child')" style="border-bottom:4px solid #2ecc71;"><span class="scene-icon">⭐</span><span class="scene-label">子育て</span><span class="scene-desc">子供との会話</span></div>
+      <div class="scene-btn" onclick="selectScene('friend')" style="border-bottom:4px solid #3b82f6;"><span class="scene-icon">◎</span><span class="scene-label">友人・パートナー</span><span class="scene-desc">関係を深めたいとき</span></div>
+      <div class="scene-btn" onclick="selectScene('work')" style="border-bottom:4px solid #f59e0b;"><span class="scene-icon">▲</span><span class="scene-label">職場</span><span class="scene-desc">上司・部下・同僚</span></div>
+    </div>
+    <div class="collection-section">
+      <h2>熱源コレクション</h2>
+      <div class="collection-grid" id="collection-grid"></div>
+    </div>
+    <div class="history-section">
+      <h2>最近の分析履歴</h2>
+      <div id="history-list"></div>
+    </div>
+  </div>
+
+  <div id="step-input" class="step">
+    <button class="back-btn" onclick="showStep('dashboard')">← 戻る</button>
+    <div id="scene-badge-wrap" style="margin-bottom:12px;"></div>
+    <h2 id="input-title" style="font-size:18px;font-weight:700;margin-bottom:4px;"></h2>
+    <p id="input-hint" style="font-size:13px;color:#aaa;margin-bottom:16px;"></p>
+    <div class="card">
+      <span class="field-label" id="name-label">名前・ニックネーム</span>
+      <input type="text" id="f-name" />
+      <span class="field-label" id="profile-label">プロフィール・最近の様子など</span>
+      <textarea id="f-smart-input" style="min-height:140px;"></textarea>
+      <p class="tone-hint" style="margin-top:4px;">あなたのトーンを選んでください</p>
+      <div class="tone-row">
+        <button class="tone-btn" id="tone-polite" onclick="setTone('polite')"><span class="tone-icon">🤝</span>丁寧め</button>
+        <button class="tone-btn active" id="tone-friendly" onclick="setTone('friendly')"><span class="tone-icon">😊</span>フレンドリー</button>
+        <button class="tone-btn" id="tone-humor" onclick="setTone('humor')"><span class="tone-icon">😄</span>ユーモア</button>
+      </div>
+      <button class="btn-primary" id="gen-btn" onclick="runAction()">熱源を分析する</button>
+      <p class="status" id="gen-status"></p>
+    </div>
+  </div>
+
+  <div id="step-result" class="step">
+    <button class="back-btn" onclick="showStep('dashboard')">← ダッシュボードへ</button>
+    <div id="result-content"></div>
+    <hr class="divider">
+    <div id="thread-section">
+      <p class="section-label">会話の続きを提案</p>
+      <p style="font-size:13px;color:#aaa;margin-bottom:14px;">メッセージを送った後、相手の返信を入力すると次の一手を提案します。</p>
+      <div class="thread-wrap" id="thread-messages"></div>
+      <div class="add-reply-area">
+        <span class="field-label">相手からの返信を入力</span>
+        <textarea id="reply-input" style="min-height:80px;" placeholder="例：そうなんです！最近は特に朝の散歩が好きで…"></textarea>
+        <button class="btn-primary" id="reply-btn" onclick="suggestReply()">次の一手を提案する</button>
+        <p class="status" id="reply-status"></p>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+const WORKER_URL = 'https://wild-frost-950f.dub-y0325.workers.dev';
+
+let currentScene = '';
+let currentTone = 'friendly';
+let currentResultData = null;
+let conversationThread = [];
+let historyData = JSON.parse(localStorage.getItem('aura_history') || '[]');
+
+const palette = {
+  matching: { accent: '#ff4b82', light: '#fff0f5' },
+  child:    { accent: '#2ecc71', light: '#e8f8f0' },
+  friend:   { accent: '#3b82f6', light: '#eff6ff' },
+  work:     { accent: '#f59e0b', light: '#fffbeb' }
+};
+
+const toneConfig = {
+  polite:   { color: '#8b5cf6', label: '丁寧め',      instruction: '丁寧で礼儀正しい言葉遣いで、落ち着いたですます調のメッセージを作ってください。' },
+  friendly: { color: '#3b82f6', label: 'フレンドリー', instruction: '自然で親しみやすい言葉遣いで、気軽に話しかけるようなトーンのメッセージを作ってください。' },
+  humor:    { color: '#f59e0b', label: 'ユーモア',     instruction: '少しユーモアやウィットを交えた、クスッと笑えるようなトーンのメッセージを作ってください。' }
+};
+
+const heatTypeMap = [
+  { keywords: ['自由', '冒険', '旅'], icon: '🌍', label: '自由を愛する', color: '#3b82f6' },
+  { keywords: ['探求', '知識', '学', '読書', '研究'], icon: '🔍', label: '探求心の', color: '#8b5cf6' },
+  { keywords: ['つながり', '人', '関係', '絆', '仲間'], icon: '🤝', label: 'つながりを求める', color: '#ff4b82' },
+  { keywords: ['創造', 'アート', '表現', 'デザイン', '音楽'], icon: '🎨', label: '創造性の', color: '#f59e0b' },
+  { keywords: ['成長', '挑戦', '目標', '努力', '向上'], icon: '🚀', label: '成長への', color: '#2ecc71' },
+  { keywords: ['癒し', '静寂', '穏やか', 'のんびり', '休息'], icon: '🌙', label: '安らぎを求める', color: '#6366f1' },
+  { keywords: ['料理', '食', 'グルメ', '味'], icon: '🍴', label: '五感を楽しむ', color: '#ef4444' },
+  { keywords: ['家族', '子供', '親', '愛情'], icon: '🏠', label: '家族愛の', color: '#ec4899' },
+];
+
+const sceneConfig = {
+  matching: { label: 'マッチングの相手', hint: '相手の関心の奥にある「好きな理由」を引き出します', icon: '❤️', namePlaceholder: '例：さくらさん', profilePlaceholder: '例：週末はカフェ巡りが好きで、最近は京都で神社を撮るのにはまっています。料理も好きでエスニック料理をよく作ります。', nameLabel: '相手の名前・ニックネーム', profileLabel: 'プロフィール文・趣味・最近の会話など',
+    sceneInstruction: 'マッチングアプリでの恋愛・パートナーシップのシーンです。' },
+  child:    { label: 'お子さん', hint: '子供の夢中な世界に親が寄り添える声かけを提案します', icon: '⭐', namePlaceholder: '例：たろう、娘', profilePlaceholder: '例：8歳・小2。マインクラフトと昆虫が好き。人見知りだが好きな話になると止まらない。', nameLabel: 'お子さんの名前・呼び方', profileLabel: '年齢・学年・夢中なこと・性格など',
+    sceneInstruction: '親子の会話のシーンです。' },
+  friend:   { label: '友人・パートナー', hint: '大切な人との会話をもっと深めるヒントを提案します', icon: '◎', namePlaceholder: '例：田中さん、彼女', profilePlaceholder: '例：大学からの友人。最近転職して落ち着いた様子。登山と読書が好き。', nameLabel: '相手の名前・関係', profileLabel: '趣味・最近の出来事・性格など',
+    sceneInstruction: '友人・パートナーとの会話を深めるシーンです。' },
+  work:     { label: '職場の方', hint: '仕事以外の顔に触れる自然な雑談・1on1のきっかけを提案します', icon: '▲', namePlaceholder: '例：佐藤部長、鈴木さん', profilePlaceholder: '例：直属の上司・50代。ゴルフと歴史が好き。最近子供が独立して少し寂しそう。', nameLabel: '名前・関係・役職', profileLabel: '趣味・最近の様子・性格など',
+    sceneInstruction: '職場の人間関係のシーンです。' }
+};
+
+function savePassword() {
+  const pw = document.getElementById('pw-input').value.trim();
+  if (!pw) { document.getElementById('pw-status').textContent = 'パスワードを入力してください'; return; }
+  localStorage.setItem('monthly_pw', pw);
+  renderDashboard();
+  showStep('dashboard');
+}
+function getPassword() { return localStorage.getItem('monthly_pw') || ''; }
+
+function showStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step-' + n).classList.add('active');
+  if (n === 'dashboard') renderDashboard();
+  window.scrollTo(0, 0);
+}
+
+function detectHeatType(heatSource) {
+  for (const type of heatTypeMap) {
+    if (type.keywords.some(k => heatSource.includes(k))) return type;
+  }
+  return { icon: '✨', label: '独自の熱源', color: '#888' };
+}
+
+function setTone(tone) {
+  currentTone = tone;
+  const tc = toneConfig[tone];
+  document.querySelectorAll('.tone-btn').forEach(b => { b.classList.remove('active'); b.style.background = '#faf9f7'; b.style.color = '#aaa'; b.style.borderColor = '#efedea'; });
+  const btn = document.getElementById('tone-' + tone);
+  btn.classList.add('active');
+  btn.style.background = tc.color;
+  btn.style.color = '#fff';
+  btn.style.borderColor = tc.color;
+}
+
+function selectScene(s) {
+  currentScene = s;
+  const cfg = sceneConfig[s];
+  const c = palette[s];
+  document.getElementById('scene-badge-wrap').innerHTML = `<span class="scene-badge" style="background:${c.light};color:${c.accent};">${cfg.icon} ${cfg.label}</span>`;
+  document.getElementById('input-title').textContent = cfg.label + 'の熱源分析';
+  document.getElementById('input-hint').textContent = cfg.hint;
+  document.getElementById('name-label').textContent = cfg.nameLabel;
+  document.getElementById('profile-label').textContent = cfg.profileLabel;
+  document.getElementById('f-name').placeholder = cfg.namePlaceholder;
+  document.getElementById('f-smart-input').placeholder = cfg.profilePlaceholder;
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-smart-input').value = '';
+  document.getElementById('gen-btn').style.background = c.accent;
+  document.getElementById('gen-status').textContent = '';
+  setTone(currentTone);
+  showStep('input');
+}
+
+function renderDashboard() { renderCollection(); renderHistory(); }
+
+function renderCollection() {
+  const grid = document.getElementById('collection-grid');
+  const types = {};
+  historyData.forEach(item => {
+    if (!item.heat_source) return;
+    const type = detectHeatType(item.heat_source);
+    if (!types[type.label]) types[type.label] = { ...type, count: 0 };
+    types[type.label].count++;
+  });
+  const entries = Object.values(types);
+  if (entries.length === 0) { grid.innerHTML = '<p style="font-size:13px;color:#ddd;">分析するとここにコレクションが貯まります</p>'; return; }
+  grid.innerHTML = entries.map(t => `<div class="collection-badge" style="background:${t.color}18;color:${t.color};"><span>${t.icon}</span><span>${t.label}熱源</span><span style="font-size:10px;opacity:.7;">×${t.count}</span></div>`).join('');
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (historyData.length === 0) { list.innerHTML = '<p class="empty-history">まだ分析履歴がありません</p>'; return; }
+  list.innerHTML = historyData.slice(0, 5).map((item, idx) => {
+    const cfg = sceneConfig[item.scene] || sceneConfig.matching;
+    const c = palette[item.scene] || palette.matching;
+    const type = detectHeatType(item.heat_source || '');
+    return `<div class="history-item" onclick="viewHistory(${idx})"><div class="history-info"><p>${type.icon} ${item.name || '不明な相手'}</p><span style="color:${c.accent};">${cfg.label}</span>　<span>${item.date}</span></div><span style="color:#ccc;font-size:18px;">›</span></div>`;
+  }).join('');
+}
+
+function buildPrompt(name, input) {
+  const cfg = sceneConfig[currentScene];
+  const tc = toneConfig[currentTone];
+  return `あなたはコミュニケーション哲学「相手の関心事に関心を持つ」を実践するAIコーチです。
+シーン: ${cfg.sceneInstruction}
+トーン: ${tc.instruction}
+相手の名前: ${name || '相手'}
+入力情報: ${input}
+
+【哲学的前提】
+人は自分の関心事についてなぜそれに関心があるのかを言語化できていないことが多い。
+誰かに「それのどこが好きなの？」と本気で聞かれたとき、初めて自分でも気づいていなかった自分らしさに出会う。
+つまり、相手の関心事に関心を向けることは、相手が自分自身を発見する手助けになる。
+この哲学を会話の中で実践するためのナビゲーションをしてください。
+
+【分析の3層構造】
+入力情報をもとに以下の3層で分析してください。
+
+第1層（表層）: 相手が話している「こと」＝表面的な関心・趣味・行動
+第2層（中層）: その「こと」に関心を持つ理由＝なぜそれをするのか・何を得ているのか
+第3層（深層）: その理由の奥にある価値観・欲求＝熱源
+
+【メッセージ生成の原則】
+- 「趣味に乗っかる質問」ではなく「好きな理由を引き出す質問」を作る
+- 相手が自分でも気づいていない価値観に触れる問いかけにする
+- 「自分のことをちゃんと見てくれている」と感じさせる言葉を選ぶ
+- 会話の目的は情報収集ではなく、相手が自分らしさを語れる場を作ること
+
+以下のJSON形式のみで回答（マークダウン・説明文は不要）:
+{
+  "name": "${name || '相手'}",
+  "layer1": "第1層：表面的な関心（20文字以内）",
+  "layer2": "第2層：関心を持つ理由（30文字以内）",
+  "heat_source": "第3層：熱源＝深層の価値観・欲求（35文字以内）",
+  "topics": [
+    {
+      "title": "話題タイトル（10文字以内）",
+      "why": "なぜこの話題が第3層の熱源に響くか（35文字以内）",
+      "intent": "この質問で相手に気づいてほしいこと（25文字以内）",
+      "messages": ["第2層に触れる問いかけ1", "第3層に直接触れる問いかけ2", "相手が語りやすいカジュアルな問いかけ3"]
+    }
+  ]
+}
+topicsは4つ生成してください。`;
+}
+
+async function callAI(prompt) {
+  const res = await fetch(WORKER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Password': getPassword() },
+    body: JSON.stringify({ model: 'gpt-4o-mini', max_tokens: 1600, messages: [{ role: 'user', content: prompt }] })
+  });
+  if (res.status === 401) { const err = await res.json(); throw new Error(err.error || 'パスワードが違います'); }
+  return await res.json();
+}
+
+async function runAction() {
+  const name = document.getElementById('f-name').value.trim();
+  const input = document.getElementById('f-smart-input').value.trim();
+  if (!input) { document.getElementById('gen-status').textContent = 'プロフィールを入力してください'; return; }
+  const btn = document.getElementById('gen-btn');
+  btn.disabled = true;
+  document.getElementById('gen-status').textContent = '3層で深掘りしています...';
+  try {
+    const data = await callAI(buildPrompt(name, input));
+    const result = JSON.parse(data.choices[0].message.content.replace(/```json|```/g, '').trim());
+    const item = { ...result, name: name || result.name, scene: currentScene, tone: currentTone, profileInput: input, date: new Date().toLocaleDateString('ja-JP') };
+    historyData.unshift(item);
+    localStorage.setItem('aura_history', JSON.stringify(historyData.slice(0, 20)));
+    currentResultData = item;
+    conversationThread = [];
+    renderResult(item);
+    resetThreadUI();
+    showStep('result');
+  } catch (e) {
+    document.getElementById('gen-status').textContent = e.message.includes('パスワード') ? 'パスワードが違います。今月のパスワードをご確認ください。' : '失敗しました。もう一度お試しください。';
+  } finally {
+    btn.disabled = false;
+    document.getElementById('gen-status').textContent = '';
+  }
+}
+
+function renderResult(data) {
+  const c = palette[data.scene] || palette.matching;
+  const type = detectHeatType(data.heat_source || '');
+  const tc = toneConfig[data.tone] || toneConfig.friendly;
+
+  document.getElementById('result-content').innerHTML = `
+    <div class="heat-source-card" style="background:${c.accent};">
+      <p class="heat-label">${data.name}さんの熱源</p>
+      <p class="heat-val">${data.heat_source}</p>
+      <span class="heat-type">${type.icon} ${type.label}熱源</span>
+    </div>
+
+    <div class="layers-card">
+      <p style="font-size:12px;font-weight:700;color:#aaa;margin-bottom:12px;">3層の深掘り分析</p>
+      <div class="layer-row">
+        <div class="layer-num" style="background:#f3f2ef;color:#888;">1</div>
+        <div class="layer-content"><p style="color:#aaa;">表層：話していること</p><span>${data.layer1 || '—'}</span></div>
+      </div>
+      <div class="layer-arrow">↓</div>
+      <div class="layer-row">
+        <div class="layer-num" style="background:${c.light};color:${c.accent};">2</div>
+        <div class="layer-content"><p style="color:${c.accent};">中層：関心を持つ理由</p><span>${data.layer2 || '—'}</span></div>
+      </div>
+      <div class="layer-arrow">↓</div>
+      <div class="layer-row">
+        <div class="layer-num" style="background:${c.accent};color:#fff;">3</div>
+        <div class="layer-content"><p style="color:${c.accent};">深層：熱源（価値観・欲求）</p><span style="font-weight:600;">${data.heat_source || '—'}</span></div>
+      </div>
+    </div>
+
+    <p style="font-size:12px;color:#aaa;margin-bottom:8px;text-align:right;">トーン：${tc.label}</p>
+
+    <div style="background:#f9f9f7;border-radius:14px;padding:14px;margin-bottom:16px;">
+      <p style="font-size:12px;color:#888;margin-bottom:8px;">トーンだけ変えて再生成</p>
+      <div class="tone-row">
+        <button class="tone-btn ${data.tone==='polite'?'active':''}" id="rtone-polite" onclick="setResultTone('polite')" style="${data.tone==='polite'?'background:#8b5cf6;color:#fff;border-color:#8b5cf6;':''}"><span class="tone-icon">🤝</span>丁寧め</button>
+        <button class="tone-btn ${data.tone==='friendly'?'active':''}" id="rtone-friendly" onclick="setResultTone('friendly')" style="${data.tone==='friendly'?'background:#3b82f6;color:#fff;border-color:#3b82f6;':''}"><span class="tone-icon">😊</span>フレンドリー</button>
+        <button class="tone-btn ${data.tone==='humor'?'active':''}" id="rtone-humor" onclick="setResultTone('humor')" style="${data.tone==='humor'?'background:#f59e0b;color:#fff;border-color:#f59e0b;':''}"><span class="tone-icon">😄</span>ユーモア</button>
+      </div>
+      <button class="btn-secondary" id="retone-btn" onclick="retoneAction()">このトーンで再生成する</button>
+      <p class="status" id="retone-status"></p>
+    </div>
+
+    ${data.topics.map(t => `
+      <div class="topic-item">
+        <p class="topic-title">${t.title}</p>
+        <p class="topic-why">${t.why}</p>
+        <p class="topic-intent">この質問の意図：${t.intent}</p>
+        ${t.messages.map(m => `<div class="msg-bubble" onclick="copyBubble('${m.replace(/'/g,"\\'")}',this);addToThread('me','${m.replace(/'/g,"\\'")}')">${m}</div>`).join('')}
+      </div>`).join('')}`;
+}
+
+let resultTone = '';
+function setResultTone(tone) {
+  resultTone = tone;
+  const colors = { polite: '#8b5cf6', friendly: '#3b82f6', humor: '#f59e0b' };
+  ['polite','friendly','humor'].forEach(t => {
+    const b = document.getElementById('rtone-' + t);
+    if (t === tone) { b.style.background = colors[t]; b.style.color = '#fff'; b.style.borderColor = colors[t]; }
+    else { b.style.background = '#faf9f7'; b.style.color = '#aaa'; b.style.borderColor = '#efedea'; }
+  });
+}
+
+async function retoneAction() {
+  if (!resultTone || !currentResultData) return;
+  const btn = document.getElementById('retone-btn');
+  btn.disabled = true;
+  document.getElementById('retone-status').textContent = '再生成中...';
+  const prevTone = currentTone;
+  currentTone = resultTone;
+  try {
+    const data = await callAI(buildPrompt(currentResultData.name, currentResultData.profileInput));
+    const result = JSON.parse(data.choices[0].message.content.replace(/```json|```/g, '').trim());
+    const item = { ...result, name: currentResultData.name, scene: currentScene, tone: resultTone, profileInput: currentResultData.profileInput, date: new Date().toLocaleDateString('ja-JP') };
+    historyData.unshift(item);
+    localStorage.setItem('aura_history', JSON.stringify(historyData.slice(0, 20)));
+    currentResultData = item;
+    conversationThread = [];
+    renderResult(item);
+    resetThreadUI();
+    window.scrollTo(0, 0);
+  } catch (e) {
+    document.getElementById('retone-status').textContent = e.message.includes('パスワード') ? 'パスワードが違います。' : '失敗しました。';
+    currentTone = prevTone;
+  } finally {
+    btn.disabled = false;
+    document.getElementById('retone-status').textContent = '';
+  }
+}
+
+function resetThreadUI() {
+  document.getElementById('thread-messages').innerHTML = '';
+  document.getElementById('reply-input').value = '';
+  document.getElementById('reply-status').textContent = '';
+  document.getElementById('reply-btn').style.background = (palette[currentScene] || palette.matching).accent;
+}
+
+function addToThread(role, text) {
+  conversationThread.push({ role, text });
+  renderThread();
+}
+
+function renderThread() {
+  const c = palette[currentScene] || palette.matching;
+  document.getElementById('thread-messages').innerHTML = conversationThread.map(msg => `
+    <div class="thread-msg ${msg.role === 'me' ? 'me' : 'them'}">
+      <div class="thread-avatar" style="background:${msg.role==='me'?'#1a1a1a':c.light};color:${msg.role==='me'?'#fff':c.accent};">${msg.role==='me'?'自':'相'}</div>
+      <div class="thread-bubble">${msg.text}</div>
+    </div>`).join('');
+}
+
+async function suggestReply() {
+  const reply = document.getElementById('reply-input').value.trim();
+  if (!reply) { document.getElementById('reply-status').textContent = '返信内容を入力してください'; return; }
+  if (!currentResultData) return;
+  addToThread('them', reply);
+  document.getElementById('reply-input').value = '';
+  const btn = document.getElementById('reply-btn');
+  btn.disabled = true;
+  document.getElementById('reply-status').textContent = '次の一手を考えています...';
+  const tc = toneConfig[currentTone];
+  const threadSummary = conversationThread.map(m => `${m.role === 'me' ? '自分' : '相手'}: ${m.text}`).join('\n');
+  const prompt = `あなたはコミュニケーション哲学「相手の関心事に関心を持つ」を実践するAIコーチです。
+相手の熱源（深層の価値観）: ${currentResultData.heat_source}
+中層（関心を持つ理由）: ${currentResultData.layer2 || ''}
+トーン: ${tc.instruction}
+
+【会話の流れ】
+${threadSummary}
+
+【原則】
+相手が自分でも言語化できていない「好きな理由」をさらに深掘りできる返し方を提案してください。
+会話の目的は情報収集ではなく、相手が自分らしさを語れる場を広げることです。
+
+以下のJSON形式のみで回答:
+{"suggestions":[{"why":"なぜこの返しが熱源に触れるか（25文字以内）","message":"メッセージ例"},{"why":"","message":""},{"why":"","message":""}]}`;
+  try {
+    const data = await callAI(prompt);
+    const result = JSON.parse(data.choices[0].message.content.replace(/```json|```/g, '').trim());
+    renderSuggestions(result.suggestions);
+  } catch (e) {
+    document.getElementById('reply-status').textContent = e.message.includes('パスワード') ? 'パスワードが違います。' : '失敗しました。';
+  } finally {
+    btn.disabled = false;
+    document.getElementById('reply-status').textContent = '';
+  }
+}
+
+function renderSuggestions(suggestions) {
+  const c = palette[currentScene] || palette.matching;
+  const wrap = document.getElementById('thread-messages');
+  const div = document.createElement('div');
+  div.style.cssText = `background:${c.light};border-radius:14px;padding:14px;margin-top:8px;`;
+  div.innerHTML = `
+    <p style="font-size:12px;color:${c.accent};font-weight:700;margin-bottom:10px;">次の一手の提案（タップで追加）</p>
+    ${suggestions.map(s => `
+      <div style="background:#fff;border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer;border:1px solid #efedea;" onclick="pickSuggestion('${s.message.replace(/'/g,"\\'")}',this)">
+        <p style="font-size:11px;color:${c.accent};margin-bottom:3px;">${s.why}</p>
+        <p style="font-size:14px;line-height:1.6;">${s.message}</p>
+      </div>`).join('')}`;
+  wrap.appendChild(div);
+  wrap.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+function pickSuggestion(msg, el) {
+  el.parentElement.remove();
+  addToThread('me', msg);
+  navigator.clipboard.writeText(msg).catch(() => {});
+}
+
+function viewHistory(idx) {
+  currentScene = historyData[idx].scene;
+  currentResultData = historyData[idx];
+  conversationThread = [];
+  renderResult(historyData[idx]);
+  resetThreadUI();
+  showStep('result');
+}
+
+function copyBubble(text, el) {
+  navigator.clipboard.writeText(text).catch(() => {});
+  if (el && el.classList) { el.classList.add('copied'); setTimeout(() => el.classList.remove('copied'), 800); }
+}
+
+window.onload = () => {
+  resultTone = 'friendly';
+  if (!getPassword()) showStep('password');
+  else { renderDashboard(); setTone('friendly'); showStep('dashboard'); }
+};
+</script>
+</body>
+</html>
