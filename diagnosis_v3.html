@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>熱源タイプ診断</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif; background: #fbfaf8; color: #2c2c2c; min-height: 100vh; line-height: 1.6; }
+  .container { max-width: 500px; margin: 0 auto; padding: 20px 16px 80px; }
+  h1 { font-size: 22px; font-weight: 800; color: #1a1a1a; letter-spacing: -0.5px; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #999; margin-bottom: 28px; }
+  .card { background: #fff; border: 1px solid #efedea; border-radius: 18px; padding: 24px 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); margin-bottom: 16px; }
+  .progress-wrap { margin-bottom: 24px; }
+  .progress-bar-bg { background: #efedea; border-radius: 4px; height: 4px; margin-bottom: 8px; }
+  .progress-bar-fill { height: 4px; border-radius: 4px; background: #1a1a1a; transition: width 0.4s ease; }
+  .q-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .q-count { font-size: 12px; color: #aaa; }
+  .q-layer { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+  .question { font-size: 17px; font-weight: 700; color: #1a1a1a; margin-bottom: 8px; line-height: 1.5; }
+  .q-intent { font-size: 12px; color: #aaa; margin-bottom: 16px; font-style: italic; }
+  .choices { display: flex; flex-direction: column; gap: 10px; }
+  .choice-btn { background: #faf9f7; border: 1.5px solid #efedea; border-radius: 14px; padding: 14px 16px; font-size: 15px; cursor: pointer; text-align: left; transition: all 0.18s; color: #2c2c2c; font-family: inherit; }
+  .choice-btn:hover { border-color: #ccc; background: #fff; transform: translateY(-1px); }
+
+  /* 結果 */
+  .result-hero { border-radius: 22px; padding: 32px 24px; margin-bottom: 20px; text-align: center; position: relative; overflow: hidden; }
+  .result-hero::before { content: ''; position: absolute; top: -40px; right: -40px; width: 160px; height: 160px; border-radius: 50%; background: rgba(255,255,255,0.08); }
+  .result-hero::after { content: ''; position: absolute; bottom: -30px; left: -30px; width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,0.06); }
+  .result-icon { font-size: 60px; margin-bottom: 12px; display: block; position: relative; z-index: 1; }
+  .result-type-label { font-size: 12px; font-weight: 700; letter-spacing: .12em; margin-bottom: 6px; opacity: .7; color: #fff; position: relative; z-index: 1; }
+  .result-name { font-size: 28px; font-weight: 800; color: #fff; margin-bottom: 12px; line-height: 1.3; position: relative; z-index: 1; }
+  .result-tagline { font-size: 14px; color: rgba(255,255,255,0.8); line-height: 1.7; position: relative; z-index: 1; }
+
+  /* 3層分析 */
+  .layer-section { margin-bottom: 16px; }
+  .layer-row { border-radius: 12px; padding: 14px 16px; margin-bottom: 4px; border-left: 4px solid; }
+  .layer-num { font-size: 10px; font-weight: 700; letter-spacing: .08em; margin-bottom: 3px; opacity: .6; }
+  .layer-title { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+  .layer-body { font-size: 14px; line-height: 1.6; }
+  .layer-arrow { text-align: center; font-size: 16px; color: #ccc; margin: 2px 0; }
+
+  /* 詳細分析 */
+  .detail-section { margin-bottom: 16px; }
+  .detail-block { background: #fff; border: 1px solid #efedea; border-radius: 14px; padding: 16px; margin-bottom: 10px; }
+  .detail-label { font-size: 11px; font-weight: 700; letter-spacing: .06em; margin-bottom: 6px; opacity: .6; }
+  .detail-text { font-size: 14px; line-height: 1.7; color: #333; }
+
+  /* バランスバー */
+  .trait-item { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .trait-bar-bg { flex: 1; background: #efedea; border-radius: 4px; height: 6px; overflow: hidden; }
+  .trait-bar-fill { height: 6px; border-radius: 4px; transition: width 0.6s ease; }
+  .trait-label { font-size: 13px; color: #666; min-width: 80px; }
+  .trait-val { font-size: 12px; color: #aaa; min-width: 32px; text-align: right; }
+
+  /* 相性診断 */
+  .compat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .compat-card { border-radius: 14px; padding: 14px; text-align: center; cursor: pointer; transition: transform 0.15s; border: 2px solid transparent; }
+  .compat-card:hover { transform: translateY(-2px); }
+  .compat-card.selected { border-color: #1a1a1a; }
+  .compat-icon { font-size: 28px; display: block; margin-bottom: 6px; }
+  .compat-name { font-size: 13px; font-weight: 700; }
+  .compat-result { border-radius: 16px; padding: 20px; margin-top: 12px; }
+  .compat-score { font-size: 36px; font-weight: 800; margin-bottom: 8px; }
+  .compat-desc { font-size: 14px; line-height: 1.7; }
+
+  /* シェア */
+  canvas { width: 100%; display: block; border-radius: 12px; }
+  .btn-primary { width: 100%; padding: 16px; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; color: #fff; background: #1a1a1a; margin-top: 8px; }
+  .btn-primary:hover { opacity: .88; }
+  .btn-secondary { width: 100%; padding: 14px; border: 1.5px solid #efedea; border-radius: 14px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #666; background: #fff; margin-top: 10px; }
+  .btn-secondary:hover { border-color: #ddd; }
+  .btn-x { width: 100%; padding: 14px; border: none; border-radius: 14px; font-size: 15px; font-weight: 700; cursor: pointer; background: #000; color: #fff; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+  /* CTA */
+  .cta-card { border-radius: 20px; padding: 24px 20px; margin-bottom: 16px; position: relative; overflow: hidden; }
+  .cta-card::before { content: ''; position: absolute; top: -30px; right: -30px; width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,0.1); }
+  .cta-tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; background: rgba(255,255,255,0.2); color: #fff; margin-bottom: 10px; }
+  .cta-title { font-size: 17px; font-weight: 800; color: #fff; margin-bottom: 8px; line-height: 1.4; }
+  .cta-desc { font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.7; margin-bottom: 16px; }
+  .cta-btn { display: block; background: #fff; border: none; border-radius: 12px; padding: 13px 20px; font-size: 15px; font-weight: 700; cursor: pointer; text-decoration: none; text-align: center; transition: all 0.18s; width: 100%; }
+  .cta-btn:hover { transform: translateY(-2px); }
+
+  .step { display: none; }
+  .step.active { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .tool-link { text-align: center; font-size: 13px; color: #aaa; margin-top: 16px; }
+  .tool-link a { color: #3b82f6; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div id="step-intro" class="step active">
+    <h1>熱源タイプ診断</h1>
+    <p class="subtitle">あなたが人に関心を持つとき、どんな「熱源」が動いていますか？</p>
+    <div class="card">
+      <p style="font-size:15px;line-height:1.8;margin-bottom:8px;">15問の質問で、あなたの「熱源タイプ」を3層で分析します。</p>
+      <p style="font-size:13px;color:#888;line-height:1.7;margin-bottom:20px;">表面的な好みだけでなく、「なぜそれが好きなのか」「その奥にある価値観は何か」まで掘り下げます。自分の熱源を知ることで、相手の熱源にも気づきやすくなります。</p>
+      <div style="display:flex;gap:8px;margin-bottom:20px;">
+        <div style="flex:1;background:#f3f2ef;border-radius:10px;padding:12px;text-align:center;">
+          <p style="font-size:18px;margin-bottom:4px;">🎯</p>
+          <p style="font-size:11px;color:#888;font-weight:600;">15問</p>
+        </div>
+        <div style="flex:1;background:#f3f2ef;border-radius:10px;padding:12px;text-align:center;">
+          <p style="font-size:18px;margin-bottom:4px;">🔍</p>
+          <p style="font-size:11px;color:#888;font-weight:600;">3層分析</p>
+        </div>
+        <div style="flex:1;background:#f3f2ef;border-radius:10px;padding:12px;text-align:center;">
+          <p style="font-size:18px;margin-bottom:4px;">🤝</p>
+          <p style="font-size:11px;color:#888;font-weight:600;">相性診断</p>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="startQuiz()">診断スタート</button>
+    </div>
+    <p class="tool-link">熱源コネクター本体は<a href="index.html">こちら</a></p>
+  </div>
+
+  <div id="step-quiz" class="step">
+    <div class="progress-wrap">
+      <div class="q-meta">
+        <span class="q-count" id="q-count">1 / 15</span>
+        <span class="q-layer" id="q-layer-badge"></span>
+      </div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-fill" style="width:7%;"></div></div>
+    </div>
+    <div class="card">
+      <p class="question" id="q-text"></p>
+      <p class="q-intent" id="q-intent"></p>
+      <div class="choices" id="q-choices"></div>
+    </div>
+  </div>
+
+  <div id="step-result" class="step">
+    <div id="result-hero-wrap"></div>
+
+    <!-- 3層分析 -->
+    <div class="card">
+      <p style="font-size:13px;font-weight:700;color:#888;margin-bottom:12px;">あなたの熱源を3層で読み解く</p>
+      <div id="layer-analysis"></div>
+    </div>
+
+    <!-- 詳細分析 -->
+    <div class="card">
+      <p style="font-size:13px;font-weight:700;color:#888;margin-bottom:12px;">詳細分析</p>
+      <div id="detail-analysis"></div>
+    </div>
+
+    <!-- バランス -->
+    <div class="card">
+      <p style="font-size:13px;font-weight:700;color:#888;margin-bottom:12px;">熱源バランス</p>
+      <div id="trait-bars"></div>
+    </div>
+
+    <!-- 相性診断 -->
+    <div class="card">
+      <p style="font-size:13px;font-weight:700;color:#888;margin-bottom:4px;">相手の熱源タイプとの相性</p>
+      <p style="font-size:12px;color:#aaa;margin-bottom:14px;">気になる相手の熱源タイプを選んでください</p>
+      <div class="compat-grid" id="compat-grid"></div>
+      <div id="compat-result" style="display:none;"></div>
+    </div>
+
+    <!-- シェア -->
+    <div class="card">
+      <p style="font-size:13px;font-weight:700;color:#888;margin-bottom:12px;">シェア画像</p>
+      <canvas id="share-canvas" width="600" height="700"></canvas>
+      <button class="btn-x" onclick="shareToX()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        Xでシェアする
+      </button>
+      <button class="btn-secondary" onclick="downloadImage()">画像を保存する</button>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-card" id="cta-card">
+      <span class="cta-tag">NEXT STEP</span>
+      <p class="cta-title" id="cta-title"></p>
+      <p class="cta-desc" id="cta-desc"></p>
+      <a href="index.html" class="cta-btn" id="cta-btn"></a>
+    </div>
+
+    <button class="btn-secondary" onclick="startQuiz()">もう一度診断する</button>
+  </div>
+
+</div>
+<script>
+const questions = [
+  { layer: 1, layerLabel: '表層', layerColor: '#888', intent: '日常の行動パターンから、表面的な関心を探ります',
+    text: '週末に自由な時間ができたら、まず何をしたいですか？',
+    choices: [{ text: '知らない場所に行ってみる', types: { freedom: 2, adventure: 2 } }, { text: '気になっていた本や動画を堪能する', types: { explore: 3 } }, { text: '誰かに連絡して会う約束をする', types: { connect: 3 } }, { text: '何かを作ったり表現したりする', types: { create: 3 } }] },
+  { layer: 1, layerLabel: '表層', layerColor: '#888', intent: '普段の行動から、どこに時間を使うかを確認します',
+    text: 'スマホで一番よく見るコンテンツは何ですか？',
+    choices: [{ text: '旅行・アウトドア系', types: { adventure: 2, freedom: 1 } }, { text: '知識・教養・ドキュメンタリー系', types: { explore: 3 } }, { text: 'SNS・人のストーリー', types: { connect: 2, harmony: 1 } }, { text: 'アート・音楽・クリエイティブ系', types: { create: 3 } }] },
+  { layer: 1, layerLabel: '表層', layerColor: '#888', intent: '表面的な好みの傾向を確認します',
+    text: '旅行に行くとしたら、どんな旅が好きですか？',
+    choices: [{ text: '計画なし、気の向くままの旅', types: { freedom: 3 } }, { text: '歴史・文化・アートを巡る旅', types: { explore: 2, create: 1 } }, { text: '大切な人と過ごすゆったりした旅', types: { connect: 2, harmony: 1 } }, { text: '未踏の地や冒険ができる旅', types: { adventure: 3 } }] },
+  { layer: 1, layerLabel: '表層', layerColor: '#888', intent: '好きな作品のジャンルから関心の方向を探ります',
+    text: '映画や本で一番心に残るのはどんな作品ですか？',
+    choices: [{ text: '旅や冒険・サバイバルもの', types: { adventure: 2, freedom: 1 } }, { text: '人間の深層や哲学を描いたもの', types: { explore: 3 } }, { text: '人と人のつながりや愛を描いたもの', types: { connect: 3 } }, { text: '天才や創造の物語', types: { create: 3 } }] },
+  { layer: 1, layerLabel: '表層', layerColor: '#888', intent: '関わりたいコミュニティの傾向を確認します',
+    text: '参加したいとしたら、どんなコミュニティですか？',
+    choices: [{ text: '旅仲間・アウトドア仲間', types: { adventure: 2, freedom: 1 } }, { text: '読書会・勉強会・研究仲間', types: { explore: 3 } }, { text: '気心知れた少人数の仲間', types: { connect: 2, harmony: 1 } }, { text: '制作・表現・クリエイティブ仲間', types: { create: 3 } }] },
+  { layer: 2, layerLabel: '中層', layerColor: '#3b82f6', intent: '「なぜ好きなのか」という理由の層を探ります',
+    text: '会話が一番深まると感じるのはどんなときですか？',
+    choices: [{ text: '将来の夢や可能性の話をするとき', types: { grow: 2, freedom: 1 } }, { text: '本質的な問いや哲学的な話をするとき', types: { explore: 3 } }, { text: 'お互いの弱さや本音を話せたとき', types: { connect: 3 } }, { text: '一緒に何かを作り上げていくとき', types: { create: 2, grow: 1 } }] },
+  { layer: 2, layerLabel: '中層', layerColor: '#3b82f6', intent: '何かをするときの内側の動機を探ります',
+    text: '何かに挑戦するとき、一番の原動力は何ですか？',
+    choices: [{ text: '誰も知らない景色を見たい', types: { adventure: 3, freedom: 1 } }, { text: '自分の限界を超えたい', types: { grow: 3 } }, { text: '誰かに喜んでもらいたい', types: { connect: 2, harmony: 1 } }, { text: '自分だけの表現を残したい', types: { create: 3 } }] },
+  { layer: 2, layerLabel: '中層', layerColor: '#3b82f6', intent: '疲れの原因から、本当に必要としているものを探ります',
+    text: '一番エネルギーを消耗するのはどんなときですか？',
+    choices: [{ text: '同じ場所・同じことの繰り返し', types: { freedom: 2, adventure: 1 } }, { text: '浅い会話や意味のないやり取り', types: { explore: 2, connect: 1 } }, { text: '人間関係の摩擦や対立', types: { harmony: 3 } }, { text: '自分らしさを出せない状況', types: { create: 2, freedom: 1 } }] },
+  { layer: 2, layerLabel: '中層', layerColor: '#3b82f6', intent: '喜びの源から、中層の動機を掘り下げます',
+    text: '相手のどんなところに一番惹かれますか？',
+    choices: [{ text: '情熱を持って何かに向かっているところ', types: { grow: 2, create: 1 } }, { text: '深く考え、独自の視点を持っているところ', types: { explore: 3 } }, { text: '人に対して誠実で温かいところ', types: { connect: 2, harmony: 1 } }, { text: '自分のスタイルを貫いているところ', types: { freedom: 2, create: 1 } }] },
+  { layer: 2, layerLabel: '中層', layerColor: '#3b82f6', intent: '怒りや不満から、大切にしている価値観を探ります',
+    text: '思わずイライラするのはどんな状況ですか？',
+    choices: [{ text: '不必要なルールや制約を押し付けられるとき', types: { freedom: 3 } }, { text: '表面的な話しか通じないとき', types: { explore: 2, connect: 1 } }, { text: '誰かが不当に扱われているとき', types: { harmony: 2, connect: 1 } }, { text: '自分の表現や考えを否定されるとき', types: { create: 2, freedom: 1 } }] },
+  { layer: 3, layerLabel: '深層', layerColor: '#1a1a1a', intent: '表面の下にある、根本的な価値観を探ります',
+    text: '「一番生きている」と感じる瞬間はどれですか？',
+    choices: [{ text: '初めての景色に立ったとき', types: { adventure: 3, freedom: 1 } }, { text: '何かが腑に落ちて「わかった！」となったとき', types: { explore: 3 } }, { text: '誰かと本当に深くつながれたとき', types: { connect: 3 } }, { text: '作ったものが完成して世界に出たとき', types: { create: 3 } }] },
+  { layer: 3, layerLabel: '深層', layerColor: '#1a1a1a', intent: '深層の価値観、存在意義に触れる問いです',
+    text: '人生の最後に「これをやってよかった」と思いたいのはどれですか？',
+    choices: [{ text: '誰も行かなかった場所に行き、自由に生きたこと', types: { freedom: 2, adventure: 2 } }, { text: '世界の深さと面白さを知り続けたこと', types: { explore: 3 } }, { text: '大切な人との時間を積み重ねたこと', types: { connect: 2, harmony: 1 } }, { text: '自分だけの作品や価値を残したこと', types: { create: 3 } }] },
+  { layer: 3, layerLabel: '深層', layerColor: '#1a1a1a', intent: '深層の欲求、本当に恐れていることを探ります',
+    text: '人生で一番避けたいことはどれですか？',
+    choices: [{ text: '同じ場所に縛られ続けること', types: { freedom: 3 } }, { text: '何も知らないまま人生が終わること', types: { explore: 3 } }, { text: '誰とも深くつながれなかったこと', types: { connect: 3 } }, { text: '自分が何者かわからないまま終わること', types: { create: 2, grow: 1 } }] },
+  { layer: 3, layerLabel: '深層', layerColor: '#1a1a1a', intent: '熱源の核心、自分が世界に伝えたいことを探ります',
+    text: '人に一番伝えたいことを選ぶとしたら？',
+    choices: [{ text: 'もっと自由に、枠の外に出ていい', types: { freedom: 2, adventure: 1 } }, { text: '知ることは、生きることと同じくらい尊い', types: { explore: 3 } }, { text: '人とのつながりが、人生を豊かにする', types: { connect: 3 } }, { text: '自分らしく表現することを恐れないで', types: { create: 2, freedom: 1 } }] },
+  { layer: 3, layerLabel: '深層', layerColor: '#1a1a1a', intent: '最も深い動機、あなたが存在する理由を探ります',
+    text: '「自分がここにいた証」として残したいのはどれですか？',
+    choices: [{ text: '誰も見ていない景色を見た記録', types: { adventure: 2, freedom: 1 } }, { text: '世界の解釈を豊かにした思想や言葉', types: { explore: 3 } }, { text: '誰かの心の中に生き続けること', types: { connect: 3 } }, { text: '自分にしか作れなかった何か', types: { create: 3 } }] }
+];
+
+const heatTypes = {
+  freedom:   { name: '自由探索型',     icon: '🌍', color: '#3b82f6',
+    tagline: '枠の外に、本当の自分がいる',
+    layer1: '新しい場所・体験・変化を求める',
+    layer2: '制約から解放されることで自分を感じる',
+    layer3: '「自分の人生は自分で決める」という根源的な欲求',
+    strength: '固定観念にとらわれない視点で、相手の可能性を広げる言葉をかけられます。',
+    weakness: '深く関わることへの躊躇が、関係の深化を妨げることがあります。',
+    howToConnect: '相手の「まだやっていないこと」「行ったことのない場所」に興味を持つと、会話が広がります。',
+    ctaTitle: 'あなたの自由への情熱を、相手の熱源を発見することに使いませんか？',
+    ctaDesc: '熱源コネクターは、相手のプロフィールから「その人だけの熱源」を分析して、会話のきっかけを提案します。',
+    ctaBtn: '相手の熱源を探索してみる', ctaBtnColor: '#3b82f6' },
+  adventure: { name: '冒険開拓型',     icon: '🚀', color: '#f59e0b',
+    tagline: '未踏の地に、最高の自分がいる',
+    layer1: 'チャレンジ・挑戦・未知の体験を好む',
+    layer2: '限界を超えた先に本当の自分がいると感じる',
+    layer3: '「まだ見ぬ景色を見たい」という根源的な衝動',
+    strength: '困難な状況でも前向きに、相手の挑戦を応援できます。',
+    weakness: '安定や日常を大切にする人との温度差が生まれることがあります。',
+    howToConnect: '相手の「一番チャレンジしたこと」「乗り越えた困難」を聞くと、深い話になります。',
+    ctaTitle: '相手の「まだ見ぬ一面」を冒険する会話、してみませんか？',
+    ctaDesc: '熱源コネクターなら、相手のプロフィールから「その人だけの熱源」を分析して、会話のきっかけを提案します。',
+    ctaBtn: '相手の熱源を開拓してみる', ctaBtnColor: '#f59e0b' },
+  explore:   { name: '深掘り探求型',   icon: '🔍', color: '#8b5cf6',
+    tagline: '「なぜ？」の先に、真実がある',
+    layer1: '知識・本質・深い対話を求める',
+    layer2: '物事の本質に触れることで満たされる',
+    layer3: '「世界の深さを知り尽くしたい」という終わらない問い',
+    strength: '相手の言葉の奥にある意味を感じ取り、表面的でない会話ができます。',
+    weakness: '深い話を求めすぎて、軽い雑談の場で距離を感じさせることがあります。',
+    howToConnect: '「なぜそれが好きなんですか？」という問いが、あなたの最大の武器です。',
+    ctaTitle: '相手の言葉の「奥」を、AIと一緒に読み解いてみませんか？',
+    ctaDesc: '熱源コネクターは、相手のプロフィールから「なぜそれが好きなのか」という深層を分析します。',
+    ctaBtn: '相手の熱源を深掘りしてみる', ctaBtnColor: '#8b5cf6' },
+  connect:   { name: 'つながり共鳴型', icon: '🤝', color: '#ff4b82',
+    tagline: '深くつながることが、生きること',
+    layer1: '人との関係・共感・絆を大切にする',
+    layer2: '誰かと深く分かり合えたときに生を感じる',
+    layer3: '「人と人が本当にわかり合える世界」への根源的な願い',
+    strength: '相手が「わかってもらえた」と感じる会話を自然に作れます。',
+    weakness: '相手の感情に引きずられすぎて、自分を見失うことがあります。',
+    howToConnect: '相手の感情の動きに敏感なので、「そのとき、どんな気持ちでしたか？」が得意な問いです。',
+    ctaTitle: '「わかってもらえた」と相手が感じる会話を、もっと意図的に作れます',
+    ctaDesc: '熱源コネクターは、相手の関心の奥にある価値観に寄り添うメッセージを提案します。',
+    ctaBtn: '相手の熱源に共鳴してみる', ctaBtnColor: '#ff4b82' },
+  create:    { name: '創造表現型',     icon: '🎨', color: '#ef4444',
+    tagline: '作ることが、存在すること',
+    layer1: '表現・制作・アウトプットを好む',
+    layer2: '自分だけの何かを生み出すことで自分を感じる',
+    layer3: '「この世界に自分だけの痕跡を残したい」という根源的な衝動',
+    strength: '独自の視点で、相手の個性や才能に気づく言葉をかけられます。',
+    weakness: '自分のペースや世界観を優先しすぎて、相手のペースを見落とすことがあります。',
+    howToConnect: '相手の「こだわり」や「自分だけのやり方」を聞くと、目が輝きます。',
+    ctaTitle: '相手に刺さる「あなただけの言葉」を一緒に作りませんか？',
+    ctaDesc: '熱源コネクターは、相手の熱源を分析して会話のヒントを提案します。あなたの表現力でさらに磨いてください。',
+    ctaBtn: '相手の熱源を分析してみる', ctaBtnColor: '#ef4444' },
+  grow:      { name: '成長挑戦型',     icon: '📈', color: '#2ecc71',
+    tagline: '昨日の自分を超えることが、喜び',
+    layer1: '成長・向上・目標達成を追いかける',
+    layer2: '昨日より前進していることで満たされる',
+    layer3: '「自分の可能性を最大化したい」という終わらない渇望',
+    strength: '相手の可能性を信じ、背中を押す言葉を自然にかけられます。',
+    weakness: '成果や進歩を求めすぎて、現状に満足している人との温度差が生まれることがあります。',
+    howToConnect: '相手の「最近成長したこと」「乗り越えたこと」を聞くと、会話が深まります。',
+    ctaTitle: '相手の「可能性の熱源」を見つける会話、してみませんか？',
+    ctaDesc: '熱源コネクターは、相手のプロフィールから成長への意欲や情熱を読み解き、話題を提案します。',
+    ctaBtn: '相手の熱源を分析してみる', ctaBtnColor: '#2ecc71' },
+  harmony:   { name: '調和共存型',     icon: '🌙', color: '#6366f1',
+    tagline: '心地よい関係が、すべての土台',
+    layer1: '穏やかさ・安心感・場の空気を大切にする',
+    layer2: '誰もが安心していられる場があることで満たされる',
+    layer3: '「誰もが居場所を持てる世界」への根源的な願い',
+    strength: '相手が安心して話せる雰囲気を自然に作り出せます。',
+    weakness: '対立を避けすぎて、本音を言えないまま関係が浅いままになることがあります。',
+    howToConnect: '相手が「ほっとする場所・時間」を聞くと、その人の核心に触れられます。',
+    ctaTitle: '相手が「安心して話せる」会話の入口を、一緒に探しませんか？',
+    ctaDesc: '熱源コネクターは、相手の関心事に自然に寄り添う話題とメッセージを提案します。',
+    ctaBtn: '相手の熱源に寄り添ってみる', ctaBtnColor: '#6366f1' }
+};
+
+const typeLabels = { freedom: '自由', adventure: '冒険', explore: '探求', connect: 'つながり', create: '創造', grow: '成長', harmony: '調和' };
+
+const compatMatrix = {
+  freedom:   { freedom: [88, '自由同士の共鳴。同じ方向を向けば最強のパートナーに。ただし二人とも「縛られたくない」気持ちがあるため、関係を深める意識が大切です。'], adventure: [92, 'お互いの冒険心が共鳴します。新しい体験を一緒に積み重ねることで、深い絆が生まれます。'], explore: [75, '自由を求めるあなたと、深さを求める探求型は、最初は噛み合わないことも。でも相手の「なぜ？」に付き合うと、予想外の発見があります。'], connect: [70, '自由を大切にするあなたと、つながりを重視する相手は、求めるものが異なります。相手の「一緒にいたい」という気持ちを大切にすると関係が深まります。'], create: [85, '自由と創造は相性抜群。お互いの独自性を尊重し合えます。相手の作品や表現に興味を持つと一気に距離が縮まります。'], grow: [80, '成長を求める相手とは、刺激し合える関係になれます。お互いの挑戦を応援し合うと深いつながりが生まれます。'], harmony: [65, '自由を求めるあなたと、安定を大切にする調和型は、最も異なるタイプです。でも相手の「安心できる場所」を一緒に作る視点が、関係を育てます。'] },
+  adventure: { freedom: [92, '冒険と自由の組み合わせは最高の相性。お互いに刺激を与え合い、どこまでも行けます。'], adventure: [85, '同じ冒険者同士。共に挑戦する体験が、強い絆を作ります。ただし競争にならないよう注意。'], explore: [78, '冒険家と探求者。見る角度は違いますが、未知への興味が共鳴します。相手の「なぜ？」に答えようとすると、お互いが成長します。'], connect: [72, 'スピード感が異なりますが、相手のゆっくりしたつながりの深め方を尊重すると、安心できる関係が生まれます。'], create: [88, '冒険と創造は相性抜群。相手の作品の「発想の源」を聞くと、深い対話になります。'], grow: [90, '成長と冒険は最高の組み合わせ。互いの挑戦を応援し合う関係は、長続きします。'], harmony: [60, '最もペースが異なるタイプ。でも相手の「穏やかさ」が、あなたの暴走を防いでくれる存在にもなります。'] },
+  explore:   { freedom: [75, '深さを求めるあなたと自由人は、視点は違いますが互いを刺激します。相手の「新しい体験」に一緒に驚くと距離が縮まります。'], adventure: [78, '探求者と冒険家。二人が合わさると、「なぜそこに行くのか」という問いが生まれ、深い対話になります。'], explore: [90, '探求者同士は最高の相性。深い話を何時間でもできます。ただし現実の行動も大切に。'], connect: [82, '深さを求める探求者と、つながりを求める相手は補い合います。相手の「感じていること」を聞くと、あなたが見えていなかった世界が開けます。'], create: [88, '探求と創造は深く共鳴します。相手の作品の「意図や哲学」を聞くと、お互いが満たされます。'], grow: [80, '探求者と成長者。互いの「知りたいこと・成し遂げたいこと」が刺激し合います。'], harmony: [72, '深い話を好むあなたと、穏やかな関係を好む調和型。相手のペースに合わせると、意外な深さが生まれます。'] },
+  connect:   { freedom: [70, '相手の自由を尊重しながら、少しずつ距離を縮める忍耐が大切です。相手の「好きな場所・体験」に一緒に興味を持つと打ち解けます。'], adventure: [72, 'スピードは合わないかもしれませんが、相手の冒険話を聞くことで、あなたの世界も広がります。'], explore: [82, 'つながりを求めるあなたと、深さを求める探求者。相手の「なぜ？」に付き合うと、最高の理解者になれます。'], connect: [88, 'つながり同士は深い絆を自然に作れます。ただし依存になりすぎないよう、それぞれの時間も大切に。'], create: [78, '相手の創造物に「これを作ったとき、何を感じていましたか？」と聞くと、深いつながりが生まれます。'], grow: [75, '成長を急ぐ相手のペースについていくより、「今ここにいること」を大切にする言葉が相手の心を動かします。'], harmony: [92, 'つながりと調和は最高の相性。二人がいる場所は、誰もが居心地よくなります。'] },
+  create:    { freedom: [85, '創造者と自由人は独自性で共鳴します。相手の「型にはまらない生き方」を尊重すると深い関係になれます。'], adventure: [88, '創造と冒険は最高の組み合わせ。共に作り、共に挑む関係になれます。'], explore: [88, '創造と探求は深く共鳴します。お互いの「作品・思想の根っこ」を話し合うと、最高の対話になります。'], connect: [78, '相手のつながりへの温かさが、あなたの表現を支えてくれます。相手に「あなたに影響を受けた」と伝えると関係が深まります。'], create: [85, '創造者同士は刺激し合えます。ただし競争ではなく、互いの表現を尊重することが大切です。'], grow: [82, '創造と成長は互いを高め合います。「あなたの作品のどこを改善したいか」という問いが深い対話を生みます。'], harmony: [70, '創造者の激しさと調和型の穏やかさは対照的。でも相手の「落ち着いた視点」があなたの表現を深めてくれます。'] },
+  grow:      { freedom: [80, '成長と自由は互いを刺激します。相手の「制限のない発想」があなたの成長の可能性を広げます。'], adventure: [90, '成長と冒険は最高の組み合わせ。一緒に挑戦し続けられる関係です。'], explore: [80, '成長者と探求者。「どう変わりたいか」と「なぜそうしたいか」が重なるとき、最高の対話になります。'], connect: [75, '成長を急ぐあなたに、つながりを大切にする相手が「立ち止まる大切さ」を教えてくれます。'], create: [82, '成長と創造は深く響き合います。互いの「次に挑戦したいこと」を話すと、自然に応援し合えます。'], grow: [87, '成長者同士は刺激し合えます。ただし競争にならず、互いの成長を純粋に喜べる関係が理想です。'], harmony: [68, 'ペースは違いますが、相手の「今ここにある良さ」に気づかせてもらうことで、あなたの成長観が豊かになります。'] },
+  harmony:   { freedom: [65, '最もペースが異なるタイプ。でも相手の自由さから「もっと力を抜いていい」ということを学べます。'], adventure: [60, '相手の冒険心があなたを引き出してくれます。一歩踏み出すきっかけをくれる存在です。'], explore: [72, '調和型と探求者。相手の深い問いに付き合うと、あなた自身の価値観が言語化されます。'], connect: [92, '調和とつながりは最高の相性。二人が作る空間は、誰もが安心できる場所になります。'], create: [70, '相手の表現への情熱が、あなたの穏やかさを揺さぶります。相手の創造物に素直に感動を伝えると深い絆になります。'], grow: [68, '成長への意欲が強い相手と、調和を大切にするあなた。相手の「なぜ成長したいのか」を聞くと、共鳴できる部分が見えてきます。'], harmony: [88, '調和同士は最も安心できる関係。ただし互いに本音を言い合える関係を意識的に作ることが大切です。'] }
+};
+
+let currentQ = 0;
+let scores = {};
+let resultType = null;
+let selectedCompatType = null;
+
+function startQuiz() {
+  currentQ = 0;
+  scores = { freedom: 0, adventure: 0, explore: 0, connect: 0, create: 0, grow: 0, harmony: 0 };
+  showStep('quiz');
+  renderQuestion();
+}
+
+function showStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step-' + n).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function renderQuestion() {
+  const q = questions[currentQ];
+  document.getElementById('q-count').textContent = `${currentQ + 1} / ${questions.length}`;
+  document.getElementById('progress-fill').style.width = `${((currentQ + 1) / questions.length) * 100}%`;
+  const badge = document.getElementById('q-layer-badge');
+  badge.textContent = `LAYER ${q.layer} · ${q.layerLabel}`;
+  badge.style.background = q.layerColor + '18';
+  badge.style.color = q.layerColor;
+  document.getElementById('q-text').textContent = q.text;
+  document.getElementById('q-intent').textContent = q.intent;
+  document.getElementById('q-choices').innerHTML = q.choices.map((c, i) =>
+    `<button class="choice-btn" onclick="selectChoice(${i})">${c.text}</button>`).join('');
+}
+
+function selectChoice(idx) {
+  const choice = questions[currentQ].choices[idx];
+  Object.entries(choice.types).forEach(([type, val]) => { scores[type] = (scores[type] || 0) + val; });
+  const btns = document.querySelectorAll('.choice-btn');
+  btns.forEach(b => b.disabled = true);
+  btns[idx].style.background = '#1a1a1a';
+  btns[idx].style.color = '#fff';
+  btns[idx].style.borderColor = '#1a1a1a';
+  setTimeout(() => { currentQ++; if (currentQ >= questions.length) showResult(); else renderQuestion(); }, 280);
+}
+
+function showResult() {
+  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+  const topKey = sorted[0][0];
+  resultType = heatTypes[topKey];
+  resultType._key = topKey;
+  const total = Object.values(scores).reduce((a, b) => a + b, 0) || 1;
+
+  document.getElementById('result-hero-wrap').innerHTML = `
+    <div class="result-hero" style="background:${resultType.color};">
+      <span class="result-icon">${resultType.icon}</span>
+      <p class="result-type-label">あなたの熱源タイプ</p>
+      <p class="result-name">${resultType.name}</p>
+      <p class="result-tagline">${resultType.tagline}</p>
+    </div>`;
+
+  document.getElementById('layer-analysis').innerHTML = `
+    <div class="layer-row" style="background:#f3f2ef;border-color:#d0cec9;">
+      <p class="layer-num" style="color:#888;">LAYER 1 · 表層</p>
+      <p class="layer-title" style="color:#555;">あなたが求めているもの</p>
+      <p class="layer-body" style="color:#333;">${resultType.layer1}</p>
+    </div>
+    <div class="layer-arrow">↓</div>
+    <div class="layer-row" style="background:${resultType.color}18;border-color:${resultType.color};">
+      <p class="layer-num" style="color:${resultType.color};">LAYER 2 · 中層</p>
+      <p class="layer-title" style="color:${resultType.color};">なぜそれを求めるのか</p>
+      <p class="layer-body" style="color:#333;">${resultType.layer2}</p>
+    </div>
+    <div class="layer-arrow">↓</div>
+    <div class="layer-row" style="background:#1a1a1a;border-color:#1a1a1a;">
+      <p class="layer-num" style="color:rgba(255,255,255,0.5);">LAYER 3 · 深層（熱源の核心）</p>
+      <p class="layer-title" style="color:rgba(255,255,255,0.8);">根源にある価値観</p>
+      <p class="layer-body" style="color:#fff;">${resultType.layer3}</p>
+    </div>`;
+
+  document.getElementById('detail-analysis').innerHTML = `
+    <div class="detail-block">
+      <p class="detail-label" style="color:${resultType.color};">あなたの強み</p>
+      <p class="detail-text">${resultType.strength}</p>
+    </div>
+    <div class="detail-block">
+      <p class="detail-label" style="color:#888;">気をつけたいこと</p>
+      <p class="detail-text">${resultType.weakness}</p>
+    </div>
+    <div class="detail-block">
+      <p class="detail-label" style="color:#1a1a1a;">相手の熱源に触れるコツ</p>
+      <p class="detail-text">${resultType.howToConnect}</p>
+    </div>`;
+
+  document.getElementById('trait-bars').innerHTML = sorted.map(([type, val]) => `
+    <div class="trait-item">
+      <span class="trait-label">${typeLabels[type]}</span>
+      <div class="trait-bar-bg"><div class="trait-bar-fill" style="width:${Math.round(val/total*100)}%;background:${heatTypes[type].color};"></div></div>
+      <span class="trait-val">${Math.round(val/total*100)}%</span>
+    </div>`).join('');
+
+  document.getElementById('compat-grid').innerHTML = Object.entries(heatTypes).map(([key, type]) => `
+    <div class="compat-card" id="compat-${key}" style="background:${type.color}18;" onclick="showCompat('${key}')">
+      <span class="compat-icon">${type.icon}</span>
+      <span class="compat-name" style="color:${type.color};">${type.name}</span>
+    </div>`).join('');
+
+  const cta = document.getElementById('cta-card');
+  cta.style.background = resultType.ctaBtnColor;
+  document.getElementById('cta-title').textContent = resultType.ctaTitle;
+  document.getElementById('cta-desc').textContent = resultType.ctaDesc;
+  const btn = document.getElementById('cta-btn');
+  btn.textContent = resultType.ctaBtn + ' →';
+  btn.style.color = resultType.ctaBtnColor;
+
+  drawShareCard();
+  showStep('result');
+}
+
+function showCompat(targetKey) {
+  selectedCompatType = targetKey;
+  document.querySelectorAll('.compat-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('compat-' + targetKey).classList.add('selected');
+  const myKey = resultType._key;
+  const compatData = compatMatrix[myKey][targetKey];
+  const score = compatData[0];
+  const desc = compatData[1];
+  const targetType = heatTypes[targetKey];
+  const scoreColor = score >= 85 ? '#2ecc71' : score >= 75 ? '#f59e0b' : '#ff4b82';
+  const compatResult = document.getElementById('compat-result');
+  compatResult.style.display = 'block';
+  compatResult.innerHTML = `
+    <div class="compat-result" style="background:${targetType.color}18;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+        <span style="font-size:32px;">${resultType.icon}</span>
+        <span style="font-size:20px;color:#ccc;">×</span>
+        <span style="font-size:32px;">${targetType.icon}</span>
+        <div style="margin-left:auto;">
+          <p class="compat-score" style="color:${scoreColor};">${score}<span style="font-size:16px;">点</span></p>
+        </div>
+      </div>
+      <p class="compat-desc" style="color:#333;">${desc}</p>
+    </div>`;
+  compatResult.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function drawShareCard() {
+  const canvas = document.getElementById('share-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = 600, H = 700;
+  canvas.width = W; canvas.height = H;
+
+  ctx.fillStyle = resultType.color;
+  ctx.fillRect(0, 0, W, H);
+  ctx.beginPath(); ctx.arc(W - 60, 60, 180, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.07)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(60, H - 60, 140, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.fill();
+
+  ctx.font = '100px serif'; ctx.textAlign = 'center';
+  ctx.fillText(resultType.icon, W / 2, 170);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.font = '700 16px -apple-system, sans-serif';
+  ctx.fillText('私の熱源タイプ', W / 2, 220);
+
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 46px -apple-system, sans-serif';
+  ctx.fillText(resultType.name, W / 2, 282);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.font = 'italic 20px -apple-system, sans-serif';
+  ctx.fillText(resultType.tagline, W / 2, 320);
+
+  const layers = [
+    { num: 'LAYER 1', text: resultType.layer1, alpha: 0.55 },
+    { num: 'LAYER 2', text: resultType.layer2, alpha: 0.72 },
+    { num: 'LAYER 3', text: resultType.layer3, alpha: 0.95 }
+  ];
+  let y = 370;
+  layers.forEach(l => {
+    ctx.fillStyle = `rgba(255,255,255,${l.alpha * 0.5})`;
+    ctx.font = '700 12px -apple-system, sans-serif';
+    ctx.fillText(l.num, W / 2, y);
+    ctx.fillStyle = `rgba(255,255,255,${l.alpha})`;
+    ctx.font = '16px -apple-system, sans-serif';
+    const words = l.text;
+    const maxW = 480;
+    let line = '', ly = y + 24;
+    for (let i = 0; i < words.length; i++) {
+      const test = line + words[i];
+      if (ctx.measureText(test).width > maxW && line !== '') { ctx.fillText(line, W/2, ly); line = words[i]; ly += 22; }
+      else { line = test; }
+    }
+    ctx.fillText(line, W/2, ly);
+    y = ly + 36;
+  });
+
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.font = '14px -apple-system, sans-serif';
+  ctx.fillText('熱源コネクター', W / 2, H - 36);
+}
+
+function shareToX() {
+  const text = `私の熱源タイプは「${resultType.name}」でした ${resultType.icon}\n\n${resultType.tagline}\n\n熱源の核心：${resultType.layer3}\n\n#熱源タイプ診断 #熱源コネクター`;
+  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+}
+
+function downloadImage() {
+  const a = document.createElement('a');
+  a.download = `熱源タイプ_${resultType.name}.png`;
+  a.href = document.getElementById('share-canvas').toDataURL('image/png');
+  a.click();
+}
+</script>
+</body>
+</html>
